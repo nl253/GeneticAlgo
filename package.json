@@ -1,0 +1,16 @@
+{
+  "name": "ga",
+  "version": "0.0.1-alpha",
+  "description": "Genetic algorithm",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "genetic",
+    "algorithm",
+    "genetic-algorithm"
+  ],
+  "author": "Norbert Logiewa <norbertlogiewa96@gmail.com>",
+  "license": "MIT"
+}
