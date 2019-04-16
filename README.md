@@ -3,6 +3,8 @@
 - use when search space is too large to use brute-force
 - built on typed arrays (uint)
 - adaptive pMutate
+- elitism (preserves top candidates)
+- uses truncation for selection
 - detects when the algorithm is stuck in a local minimum and returns
 - candidates are UintArrays (you choose if 32 | 16 | 8 bit, and you choose number of genes)
 
