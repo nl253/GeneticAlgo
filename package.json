@@ -4,6 +4,15 @@
   "engines": {
     "node": ">=10"
   },
+  "bugs": {
+    "email": "norbertlogiewa96@gmail.com",
+    "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
+  },
+  "private": false,
+  "repository": {
+    "url": "https://github.com/nl253/GeneticAlgo-JS/issues",
+    "type": "git"
+  },
   "keywords": [
     "genetic",
     "algorithm",
@@ -21,5 +30,5 @@
   "homepage": "https://github.com/nl253/GeneticAlgo-JS",
   "main": "index.js",
   "name": "genetic-algo",
-  "version": "0.0.2-alpha"
+  "version": "0.0.3-alpha"
 }
