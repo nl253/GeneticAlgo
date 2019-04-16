@@ -1,16 +1,25 @@
 {
-  "name": "ga",
-  "version": "0.0.1-alpha",
+  "author": "Norbert Logiewa <norbertlogiewa96@gmail.com>",
   "description": "Genetic algorithm",
-  "main": "index.js",
-  "scripts": {
-    "test": "jest"
+  "engines": {
+    "node": ">=10"
   },
   "keywords": [
     "genetic",
     "algorithm",
-    "genetic-algorithm"
+    "genetic-algorithm",
+    "search",
+    "global-search"
   ],
-  "author": "Norbert Logiewa <norbertlogiewa96@gmail.com>",
-  "license": "MIT"
+  "files": [
+    "README.md",
+    "index.js",
+    "examples/math.js"
+  ],
+  "license": "MIT",
+  "readme": "README.md",
+  "homepage": "https://github.com/nl253/GeneticAlgo-JS",
+  "main": "index.js",
+  "name": "genetic-algo",
+  "version": "0.0.2-alpha"
 }

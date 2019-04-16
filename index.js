@@ -1,149 +1,148 @@
-// vim:hlsearch:sw=2:ts=4:expandtab:
+/**
+ * Implements:
+ *
+ * - elitism
+ * - local-minimum detection
+ * - rank-based selection
+ * - timeout finish
+ * - nRound finish
+ * - adaptive probability (increases and accelerates as time increases)
+ */
 const { EventEmitter } = require('events');
 
-class GA extends EventEmitter {
+class GeneticAlgorithm extends EventEmitter {
   /**
    * @param {!Function(Uint8Array|Uint16Array|Uint32Array): !Number} f
-   * @param {!Number} [nBits]
-   * @param {!Number} [popSize]
-   * @param {!Number} [candSize]
-   * @param {!Number} [timeOut]
-   * @param {!Number} [nRounds]
-   * @param {!Number} [growth]
+   * @param {{maxRandVal: !Number, acc: !Number, nGenes: !Number, nElite: !Number, minImprove: !Number, nBits: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, nRounds: !Number, pMutate: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
    */
-  constructor(f, nBits = 8, popSize = 100, candSize = 10, pMutate = 0.1, timeOut = 30, nRounds = 100, growth = 2, track = 50, minImprove = 0.0001) {
+  constructor(f, opts = {}) {
     super();
-    this.f = f;
-    const nBytes = nBits / 8;
-    this.nBits = nBits;
-    this.timeOut = timeOut;
-    this.pMutate = pMutate;
-    this.nRounds = nRounds;
-    this.candSize = candSize;
-    this.popSize = popSize;
-    this.growth = growth;
-    this.nBytes = nBytes;
-    this.minImprove = minImprove;
-    const producer = eval(`Uint${nBits}Array`);
-    this.pop = new producer(new ArrayBuffer(popSize * candSize * nBytes * growth));
-    if (this.minImprove !== null && this.track !== null) {
-      this.prevFitness = new Float64Array(new ArrayBuffer((64/8) * track));
-    }
-    this.emit('generated');
-    for (let candIdx = 0; candIdx < this.popSize * this.candSize; candIdx += this.candSize) {
-      for (let geneIdx = 0; geneIdx < this.candSize; geneIdx++) {
-        this.pop[candIdx + geneIdx] = this.randNum;
+    Object.assign(this, Object.assign({
+      f,
+      minImprove: 1E-4,
+      minNGeneMut: 1,
+      nBits: 8,
+      nElite: 10,
+      nGenes: 10,
+      nRounds: 1e6,
+      nTrack: 50,
+      pMutate: 0.01,
+      popSize: 100,
+      timeOutMS: 30 * 1000,
+    }, opts));
+    this.acc = this.acc || 1 / (this.nRounds * 1E3) || 1E-5;
+    this.maxNGeneMut = this.maxNGeneMut || Math.floor(Math.log2(this.nGenes));
+    this.nElite = this.nElite < 1 ? Math.floor(this.nElite * this.popSize) : this.nElite;
+    this.maxRandVal = this.maxRandVal || 2**this.nBits - 1;
+  }
+
+  * search() {
+    const bufSize = this.popSize * this.nGenes * (this.nBits / 8);
+    const makePop = () => eval(`new Uint${this.nBits}Array(new ArrayBuffer(${bufSize}))`);
+
+    this.emit('generate');
+    let pop = makePop();
+    this.emit('randomize');
+
+    // initialise to pop to rand values
+    for (let cIdx = 0; cIdx < this.popSize * this.nGenes; cIdx += this.nGenes) {
+      for (let geneIdx = 0; geneIdx < this.nGenes; geneIdx++) {
+        pop[cIdx + geneIdx] = Math.floor(Math.random() * this.maxRandVal);
       }
     }
-    this.emit('randomized');
-  }
 
-  /**
-  * @returns {Uint8Array|Uint16Array|Uint32Array} parent
-   */
-  get randParent() {
-    const idxStart = Math.floor(Math.random() * this.popSize) * this.candSize;
-    const idxEnd = idxStart + this.candSize;
-    return this.pop.subarray(idxStart, idxEnd);
-  }
+    // scores of candidates from last nTrack rounds
+    const maxScores = this.minImprove !== null && this.nTrack !== null
+      ? new Float32Array(new ArrayBuffer(4 * this.nTrack))
+      : null;
 
-  /**
-   * @returns {!Number} rand num
-   */
-  get randNum() {
-    const n = Math.floor(Math.random() * 2**this.nBits);
-    return n < 0 ? 0 : n;
-  }
+    // fitness score for every corresponding candidate
+    const scores = new Float32Array(new ArrayBuffer(this.popSize * 4));
+    // indexes of candidates
+    let candIdxs = new Uint32Array(new ArrayBuffer(this.popSize * 4)).map((_, idx) => idx);
 
-  *search() {
+    this.on('round', rIdx => {
+      // adaptive p(mutation)
+      // make it a function of time (#round)
+      this.emit('adapt', this.pMutate = this.pMutate + this.acc * rIdx);
+    });
+
     const startTm = Date.now();
     this.emit('start', startTm);
-    let roundIdx = 0;
-    while (true) {
 
-      if (roundIdx >= this.nRounds) {
-        this.emit('rounds', roundIdx);
+    let rIdx = 0;
+    while (true) {
+      if (rIdx >= this.nRounds) {
+        this.emit('rounds');
+        break;
+      } else if ((Date.now() - startTm) >= this.timeOutMS) {
+        this.emit('timeout');
+        break;
+      } else if (maxScores !== null && rIdx > maxScores.length && maxScores.subarray(1).map((f, idx) => f - maxScores[idx]).reduce((diff1, diff2) => diff1 + diff2) < this.minImprove) {
+        this.emit('stuck');
         break;
       } else {
-        roundIdx++;
+        this.emit('round', rIdx);
+        rIdx++;
       }
 
-      if (((Date.now() - startTm) / 1000) >= this.timeOut) {
-        this.emit('timeout', roundIdx);
-        break;
+      this.emit('score');
+      for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+        scores[cIdx] = this.f(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes));
       }
 
-      if (roundIdx > this.prevFitness.length && this.minImprove !== null) {
-        // 1st order discrete difference
-        const diffFstOrd = this.prevFitness.subarray(1).map((f, idx) => f - this.prevFitness[idx]);
-        const improvement = diffFstOrd.reduce((diff1, diff2) => diff1 + diff2);
-        this.emit('imp', improvement);
-        if (improvement < this.minImprove) {
-          this.emit('stuck', improvement);
-          break;
-        }
-      }
+      const newPop = makePop();
 
-      for (let candIdx = this.popSize * this.candSize; candIdx < this.pop.length; candIdx += this.candSize) {
-        if (Math.random() < this.pMutate) {
-          const parent = this.randParent
-          this.pop.set(parent, candIdx);
-          const geneIdx = Math.floor(Math.random() * this.candSize);
-          this.pop[candIdx + geneIdx] = this.randNum;
-          this.emit('mutation', parent, geneIdx, this.pop.subarray(candIdx, candIdx + this.candSize));
-        } else {
-          const coPoint = Math.floor(Math.random() * this.candSize);
-          const parent1_ = this.randParent;
-          const parent2_ = this.randParent;
-          const parent1 = parent1_.subarray(0, coPoint);
-          const parent2 = parent2_.subarray(coPoint);
-          this.pop.set(parent1, candIdx);
-          this.pop.set(parent2, candIdx + parent1.length);
-          this.emit('crossover', parent1_, parent2_, coPoint, this.pop.subarray(candIdx, candIdx + this.candSize));
-        }
-      }
-
-      this.emit('round', roundIdx);
-      let candidates = [];
-      for (let candIdx = 0; candIdx < this.pop.length; candIdx += this.candSize) {
-        candidates.push(this.pop.subarray(candIdx, candIdx + this.candSize));
-      }
-
-      this.emit('sorting');
-
-      candidates = candidates.map(cand => ({ cand, fitness: this.f(cand) }));
+      let improve, bestF;
 
       if (this.minImprove !== null) {
-
         // shift left
-        this.prevFitness.set(this.prevFitness.slice(1));
-
-        const totalF = candidates.slice(0, this.popSize).map(({ fitness }) => fitness).reduce((f1, f2) => f1 + f2, 0);
-
-        // 'append'
-        this.prevFitness[this.prevFitness.length - 1] = totalF; 
-
-        this.emit('recording', totalF);
+        maxScores.set(maxScores.subarray(1));
+        bestF = scores.filter(s => !Object.is(NaN, s) && !Object.is(Infinity, s)).reduce((s1, s2) => Math.max(s1, s2), 0);
+        maxScores[maxScores.length - 1] = bestF;
+        improve = bestF - maxScores[maxScores.length - 2];
       }
 
-      candidates = candidates
-        .sort((c1, c2) => c1.fitness > c2.fitness ? -1 : 1)
-        .map(({cand}) => cand);
+      candIdxs = candIdxs.sort((idx1, idx2) => scores[idx1] > scores[idx2] ? -1 : 1);
 
-      const newPop = eval(`new Uint${this.nBits}Array(new ArrayBuffer(${this.popSize * this.candSize * this.growth * this.nBytes}))`);
-      
-      for (let cIdx = 0; cIdx < candidates.length; cIdx++) {
-        newPop.set(candidates[cIdx], cIdx * this.candSize);
+      this.emit('best', pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes), bestF, improve);
+
+      for (let ptr = 0; ptr < this.popSize; ptr++) {
+        const cIdx = candIdxs[ptr];
+        newPop.set(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes), ptr * this.nGenes);
       }
 
-      this.pop = newPop;
+      pop = newPop;
+
+      // go over non-elite units and use elite units for operators
+      for (let cIdx = this.nElite * this.nGenes; cIdx < pop.length; cIdx += this.nGenes) {
+        if (Math.random() < this.pMutate) {
+          this.emit('mutate');
+          let pIdx;
+          do { pIdx = Math.floor(Math.random() * this.popSize); } while (pIdx === cIdx);
+          pop.set(pop.subarray(pIdx * this.nGenes, (pIdx + 1) * this.nGenes), cIdx);
+          for (let i = 0; i < this.minNGeneMut + Math.floor(Math.random() * this.maxNGeneMut); i++) {
+            pop[cIdx + Math.floor(Math.random() * this.nGenes)] = Math.floor(Math.random() * this.maxRandVal);
+          }
+        } else {
+          this.emit('crossover');
+          const maxIdx = cIdx / this.nGenes;
+          let pIdx1, pIdx2;
+          do { pIdx1 = Math.floor(Math.random() * maxIdx); } while (pIdx1 === cIdx);
+          do { pIdx2 = Math.floor(Math.random() * maxIdx); } while (pIdx2 === cIdx || pIdx2 === pIdx1);
+          const coPoint = Math.floor(Math.random() * (this.nGenes + 1));
+          pop.set(pop.subarray(pIdx1 * this.nGenes, pIdx1 * this.nGenes + coPoint), cIdx);
+          pop.set(pop.subarray(pIdx2 * this.nGenes + coPoint, (pIdx2 + 1) * this.nGenes), cIdx + coPoint);
+        }
+      }
     }
-    this.emit('end', roundIdx, Date.now() - startTm);
-    for (let cIdx = 0; cIdx < this.popSize * this.candSize; cIdx += this.candSize) {
-      this.emit('yield', cIdx);
-      yield this.pop.subarray(cIdx, cIdx + this.candSize);
+
+    this.emit('end', rIdx, new Date(), Date.now() - startTm);
+    for (let cIdx = 0; cIdx < this.popSize * this.nGenes; cIdx += this.nGenes) {
+      yield pop.subarray(cIdx, cIdx + this.nGenes);
     }
   }
 }
 
-module.exports = GA;
+module.exports = GeneticAlgorithm;
+// vim:hlsearch:sw=2:ts=4:expandtab:
