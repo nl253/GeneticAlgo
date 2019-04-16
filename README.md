@@ -45,7 +45,7 @@ const opts = {
 const ga = new GA(fitnessFunction, opts)
 
 // Array<TypedArrays>
-const bestCandidates = ga.search()
+const bestCandidates = Array.from(ga.search()) // this is a GENERATOR
 
 for (let i = 0; i < bestCandidates.length; i++) {
   const candidate = bestCandidates[i]
