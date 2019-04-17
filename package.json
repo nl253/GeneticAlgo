@@ -1,18 +1,33 @@
 {
   "author": "Norbert Logiewa <norbertlogiewa96@gmail.com>",
-  "description": "Genetic algorithm",
-  "engines": {
-    "node": ">=10"
-  },
   "bugs": {
     "email": "norbertlogiewa96@gmail.com",
     "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
   },
-  "private": false,
-  "repository": {
-    "url": "https://github.com/nl253/GeneticAlgo-JS/issues",
-    "type": "git"
+  "description": "Genetic algorithm",
+  "devDependencies": {
+    "eslint": "^5.16.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-plugin-compat": "^3.1.1",
+    "eslint-plugin-filenames": "^1.3.2",
+    "eslint-plugin-import": "^2.17.2",
+    "eslint-plugin-jsx-a11y": "^6.2.1",
+    "eslint-plugin-node": "^8.0.1",
+    "eslint-plugin-optimize-regex": "^1.1.6",
+    "eslint-plugin-promise": "^4.1.1",
+    "eslint-plugin-react": "^7.12.4",
+    "eslint-plugin-security": "^1.4.0"
   },
+  "engines": {
+    "node": ">=10"
+  },
+  "files": [
+    "README.md",
+    "index.js",
+    "examples/math.js.js",
+    "examples/dummy.js"
+  ],
+  "homepage": "https://github.com/nl253/GeneticAlgo-JS",
   "keywords": [
     "genetic",
     "algorithm",
@@ -20,15 +35,14 @@
     "search",
     "global-search"
   ],
-  "files": [
-    "README.md",
-    "index.js",
-    "examples/math.js"
-  ],
   "license": "MIT",
-  "readme": "README.md",
-  "homepage": "https://github.com/nl253/GeneticAlgo-JS",
   "main": "index.js",
   "name": "genetic-algo",
-  "version": "0.1.1-alpha"
+  "private": false,
+  "readme": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
+  },
+  "version": "0.1.2-alpha"
 }
