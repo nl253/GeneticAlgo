@@ -40,11 +40,6 @@ const ga = new GA(fitnessFunction, 12, 'u32')
 
 // Array<TypedArrays>
 const bestCandidates = Array.from(ga.search()) // this is a GENERATOR
-
-for (let i = 0; i < bestCandidates.length; i++) {
-  const candidate = bestCandidates[i]
-  console.log(`[#${i}] with genes [${candidate.reduce((g1, g2) => g1 + ', ' + g2)}]`)
-}
 ```
 
 E.g. an initial population with `popSize = 4`, `nGenes = 2`, `dtype = 'u8'` will look something like this:
