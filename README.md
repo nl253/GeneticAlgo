@@ -7,7 +7,7 @@
 - uses truncation for selection
 - detects when the algorithm is stuck in a local minimum and returns
 
-E.g. an initial pop with `popSize = 4`, `nGenes = 2`, `nBits = 8` will look something like this:
+E.g. an initial pop with `popSize = 4`, `nGenes = 2`, `dtype = 'u8'` will look something like this:
 
 ```js
 [23,  0] // candidate 1
