@@ -12,10 +12,24 @@ const { EventEmitter } = require('events');
 
 const SEC = 1000;
 const bitRegex = /8|16|32|64/;
+const DTYPES = new Set(['f64', 'f32', 'i32', 'i16', 'i8', 'u32', 'u16', 'u8']);
+const MIN_POPSIZE = 5;
+const DEFAULTS = {
+  minImprove: 1E-4,
+  minNGeneMut: 1,
+  nElite: 0.1,
+  nRounds: 1e6,
+  nTrack: 50,
+  signals: ['start', 'end', 'timeout', 'stuck'],
+  pMutate: 0.01,
+  popSize: 100,
+  timeOutMS: 30 * SEC,
+};
 
 /**
- * @param {!String} dtype
- * @return {Float32ArrayConstructor|Float64ArrayConstructor|Int8ArrayConstructor|Int16ArrayConstructor|Int32ArrayConstructor|Uint8ArrayConstructor|Uint16ArrayConstructor|Uint32ArrayConstructor|never} constructor
+ * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
+ * @returns {Float32ArrayConstructor|Float64ArrayConstructor|Int8ArrayConstructor|Int16ArrayConstructor|Int32ArrayConstructor|Uint8ArrayConstructor|Uint16ArrayConstructor|Uint32ArrayConstructor|never} constructor
+ * @private
  */
 function getConst(dtype) {
   if (dtype.toLowerCase() !== dtype) {
@@ -35,67 +49,107 @@ function getConst(dtype) {
 
 class GeneticAlgorithm extends EventEmitter {
   /**
-   * @param {!function((Uint8Array|Uint16Array|Uint32Array)): !Number} f
-   * @param {{maxRandVal: !Number, minRandVal: !Number, acc: !Number, nGenes: !Number, nElite: !Number, minImprove: !Number, dtype: !String, maxNGeneMut: !Number, minNGeneMut: !Number, nRounds: !Number, pMutate: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
+   * @param {!function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} f
+   * @param {!Number} nGenes
+   * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
+   * @param {{maxRandVal: !Number, minRandVal: !Number, acc: ?Number, nGenes: !Number, nElite: !Number, minImprove: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, nRounds: !Number, pMutate: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number, signals: !Array<('best'|'score'|'mutate'|'crossover'|'start'|'end'|'adapt'|'timeout'|'rounds'|'round'|'generate'|'randomize')>}} [opts]
    */
-  constructor(f, opts = {}) {
+  constructor(f, nGenes, dtype, opts = {}) {
     super();
-    Object.assign(this, Object.assign({
-      f,
-      minImprove: 1E-4,
-      minNGeneMut: 1,
-      nElite: 10,
-      nGenes: 10,
-      nRounds: 1e6,
-      nTrack: 50,
-      signals: ['start', 'end', 'timeout', 'stuck'],
-      pMutate: 0.01,
-      dtype: 'u8',
-      popSize: 100,
-      timeOutMS: 30 * SEC,
-    }, opts));
-    this.nBits = parseInt(bitRegex.exec(this.dtype)[0]);
-    this.signals = new Set(this.signals);
-    this.acc = this.acc || 1 / (this.nRounds * 1000) || 1E-5;
-    if (this.maxNGeneMut === undefined) {
-      this.maxNGeneMut = Math.floor(Math.log2(this.nGenes));
+
+    // validation
+    if (dtype === undefined) {
+      throw new Error('you MUST set `dtype`');
     }
+    if (nGenes === undefined) {
+      throw new Error('you MUST set `nGenes`');
+    }
+    if (opts.popSize !== undefined && opts.popSize < MIN_POPSIZE) {
+      throw new Error(`population size too small, min ${MIN_POPSIZE}`);
+    }
+    if (!DTYPES.has(dtype)) {
+      throw new Error(`unrecognised dtype "${dtype}", choose from: ${Array.from(DTYPES).join(', ')}`);
+    }
+    if (opts.nElite !== undefined && opts.popSize !== undefined && opts.nElite > opts.popSize) {
+      throw new Error('`nElite` CANNOT be greater than `popSize`');
+    }
+    if (opts.nElite !== undefined && opts.nElite < 0) {
+      throw new Error('`nElite` CANNOT be negative');
+    }
+    if (opts.nTrack !== undefined && opts.nTrack < 0) {
+      throw new Error('`nTrack` CANNOT be negative');
+    }
+    if (opts.nElite !== undefined && !Number.isInteger(opts.nElite) && opts.nElite > 1) {
+      throw new Error('`nElite` must be EITHER an int specifying the number of elite candidate OR a ratio, a float between 0 and 1');
+    }
+    if (opts.minNGeneMut !== undefined && opts.minNGeneMut > nGenes) {
+      throw new Error('`minNGeneMut` CANNOT be greater than `nGenes`');
+    }
+    if (opts.minNGeneMut !== undefined && opts.minNGeneMut < 1) {
+      throw new Error('`minNGeneMut` must be at least 1, you have to mutate SOMETHING');
+    }
+    if (opts.minNGeneMut !== undefined && opts.maxNGeneMut !== undefined && opts.minNGeneMut > opts.maxNGeneMut) {
+      throw new Error('`minNGeneMut` cannot be greater than `maxNGeneMut`');
+    }
+    if (opts.minRandVal !== undefined && opts.minRandVal < 0 && dtype.startsWith('u')) {
+      throw new Error('`minRandVal` cannot be negative when using unsigned integers (uint array)');
+    }
+    if (opts.minRandVal !== undefined && opts.maxRandVal !== undefined && opts.minRandVal > opts.maxRandVal) {
+      throw new Error('`minRandVal` cannot be greater than `maxRandVal`');
+    }
+    if (opts.maxNGeneMut !== undefined && opts.maxNGeneMut > nGenes) {
+      throw new Error('`maxNGeneMut` cannot be greater than `nGenes`');
+    }
+    if (opts.pMutate !== undefined && opts.pMutate > 1) {
+      throw new Error('`pMutate` is a probability so it must be BETWEEN 0 AND 1');
+    }
+    if (opts.acc !== undefined && opts.acc > 1) {
+      throw new Error('`acc` must be a tiny value BETWEEN 0 AND 1');
+    }
+
+    const DERIVED_OPTS = {
+      f,
+      dtype,
+      maxNGeneMut: Math.max(1, Math.floor(Math.log2(nGenes))),
+      nBits: parseInt(bitRegex.exec(dtype)[0]),
+      nGenes,
+    };
+
+    Object.assign(
+      this,
+      Object.assign(
+        DERIVED_OPTS,
+        Object.assign(
+          Object.assign({}, DEFAULTS),
+          opts)));
+    
+    this.signals = new Set(this.signals);
+
+    if (this.acc === undefined) {
+      this.acc = 1 / (this.nRounds * 1000) || 1E-5;
+    }
+
     if (this.nElite < 1) {
       this.nElite = Math.floor(this.nElite * this.popSize);
     } 
+
     if (this.maxRandVal === undefined) {
-      if (this.dtype.startsWith('f')) {
+      if (dtype.startsWith('f')) {
         this.maxRandVal = (3.4 * (10 ** 38) - 1) / 1E4;
-      } else if (this.dtype.startsWith('i')) {
+      } else if (dtype.startsWith('i')) {
         this.maxRandVal = 2 ** (this.nBits - 1) - 1;
-      } else if (this.dtype.startsWith('u')) {
+      } else if (dtype.startsWith('u')) {
         this.maxRandVal = 2 ** this.nBits - 1;
       }
     }
     if (this.minRandVal === undefined) {
-      if (this.dtype.startsWith('f')) {
+      if (dtype.startsWith('f')) {
         this.minRandVal = (1.2 * (10 ** -38)) / 1E4;
-      } else if (this.dtype.startsWith('i')) {
+      } else if (dtype.startsWith('i')) {
         this.minRandVal = -(2 ** (this.nBits - 1)) + 1;
-      } else if (this.dtype.startsWith('u')) {
+      } else if (dtype.startsWith('u')) {
         this.minRandVal = 0;
       }
-    }
-    // validation
-    if (this.popSize < 10) {
-      throw new Error('pop size too small, min 10');
-    }
-    if (this.nBits !== 8 && this.nBits !== 16 && this.nBits !== 32 && this.nBits !== 64) {
-      throw new Error('nBits must be EITHER 8 OR 16 OR 32');
-    }
-    if (this.nElite > this.popSize) {
-      throw new Error('nElite CANNOT be greater than popSize');
-    }
-    if (this.minNGeneMut > this.nGenes) {
-      throw new Error('minNGeneMut CANNOT be greater than nGenes');
-    }
-    if (this.pMutate > 1) {
-      throw new Error('pMutate is a probability so it must be between 0 and 1');
     }
   }
 
@@ -129,7 +183,7 @@ class GeneticAlgorithm extends EventEmitter {
     // indexes of candidates
     let candIdxs = new Uint32Array(new ArrayBuffer(this.popSize * 4)).map((_, idx) => idx);
 
-    if (this.signals.has('round') && this.signals.has('adapt')) {
+    if (this.acc !== null && this.signals.has('round') && this.signals.has('adapt')) {
       this.on('round', (rIdx) => {
         /*
          * adaptive p(mutation)
