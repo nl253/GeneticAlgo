@@ -43,6 +43,15 @@ const opts = {
   nTrack: 50,          // keep track of improvements in last 50 rounds to detect local minima
   pMutate: 0.01,       // it's adaptive so it will go up with 'time'
   popSize: 100,
+  maxRandVal: 10000,
+  minRandVal: 0,
+  signals: [           // enable emitting signals (implements EventEmitter, see below)
+    'best',
+    'start',
+    'stuck',
+    'end',
+    'rounds',
+  ],
 }
 
 const ga = new GA(fitnessFunction, opts)
@@ -84,6 +93,41 @@ function fitnessFunction(cand) {
   return fitnessScore
 }
 ```
+
+## Profiling with EventEmitter API
+
+The `GeneticAlgorithm` will emit several signals along with some information
+which can be used for profiling.
+
+**NOTE** data emitted is in sub-bullets.
+
+By default these are emitted:
+
+- `"start"` when `.search()` is called
+  - **INT** `startTime`
+  - **OBJECT** `opts`
+- `"timeout"` when `timeOutMS` limit reached.
+- `"stuck"` when stuck in a local minumum.
+- `"end"` when finished.
+  - **INT** `roundNumber`
+  - **DATE** `dateFinished`
+  - **INT** `msTook`
+
+You can also enable these (see `signals` in `opts` in the constructor):
+
+- `"round"` on every round start.
+- `"rounds"` when `nRounds` limit reached.
+- `"best"` after all candidates have been evaluated and the best candidate is selected.
+  - **TYPEDARRAY** `bestCandidate`
+  - **FLOAT** `scoreOfBestCandidate`
+  - **FLOAT** `improvementSinceLastRound`
+- `"generate"` when generating initial population.
+- `"randomize"` when setting random genes in the initial population.
+- `"adapt"` when `pMutate` is adjusted (done every round).
+  - **FLOAT** `newProbMutate`
+- `"score"` when scoring candidate solutions.
+
+To see how you can extract the data from these signals (emitted) see examples in `./examples/`.
 
 ## Downsides
 

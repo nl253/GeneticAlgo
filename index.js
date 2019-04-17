@@ -65,11 +65,7 @@ class GeneticAlgorithm extends EventEmitter {
     } 
     if (this.maxRandVal === undefined) {
       if (this.dtype.startsWith('f')) {
-        if (this.nBits === 32) {
-          this.maxRandVal = (3.4 * (10 ** 38) - 1) / 1E4;
-        } else if (this.nBits === 64) {
-          this.maxRandVal = (1.8 * (10 ** 308)) / 1E4;
-        }
+        this.maxRandVal = (3.4 * (10 ** 38) - 1) / 1E4;
       } else if (this.dtype.startsWith('i')) {
         this.maxRandVal = 2 ** (this.nBits - 1) - 1;
       } else if (this.dtype.startsWith('u')) {
@@ -78,11 +74,7 @@ class GeneticAlgorithm extends EventEmitter {
     }
     if (this.minRandVal === undefined) {
       if (this.dtype.startsWith('f')) {
-        if (this.nBits === 32) {
-          this.minRandVal = (1.2 * (10 ** -38)) / 1E4;
-        } else if (this.nBits === 64) {
-          this.minRandVal = (5 * (10 ** -324)) / 1E4;
-        }
+        this.minRandVal = (1.2 * (10 ** -38)) / 1E4;
       } else if (this.dtype.startsWith('i')) {
         this.minRandVal = -(2 ** (this.nBits - 1)) + 1;
       } else if (this.dtype.startsWith('u')) {
