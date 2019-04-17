@@ -38,16 +38,12 @@ In a nutshell:
 ```js
 const GA = require('genetic-algo')
 
-// silly fitness function  (see below for a better example)
+// silly fitness function (see below for a better example)
 const fitnessFunction = arr => arr.reduce((x, y) => x + y, 0) 
 
 const SEC = 1000;
 
 const opts = {
-  // NEEDED
-  dtype: 'u32',        // [NEEDED] 'u32' | 'u16' | 'u8' | 'i32' | 'i16' | 'i8' | 'f32' | 'f64' 
-  nGenes: 3,           // [NEEDED] each candidate is a typed array of length equal to nGenes
-
   // DEFAULT OPTIONS
   nElite: 0.1,         // 0.1 is 10%, 10 is 10
   timeOutMS: 30 * SEC, // stop condition 
@@ -70,7 +66,10 @@ const opts = {
   ],
 }
 
-const ga = new GA(fitnessFunction, opts)
+// fitnessFunction: [NEEDED] function(TypedArray): Number
+// nGenes:          [NEEDED] Number (each candidate is a typed array of length equal to nGenes)
+// dtype:           [NEEDED] 'u32' | 'u16' | 'u8' | 'i32' | 'i16' | 'i8' | 'f32' | 'f64' 
+const ga = new GA(fitnessFunction, 12, 'u32', opts)
 
 // Array<TypedArrays>
 const bestCandidates = Array.from(ga.search()) // this is a GENERATOR
