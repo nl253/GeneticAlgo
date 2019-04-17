@@ -7,42 +7,48 @@
  */
 
 const GA = require('..');
+
 const SEC = 1000;
 
 const opts = {
-  dtype: 'u8',
-  nGenes: 8,
-  timeOutMS: 300 * SEC,
   popSize: 10,
+  signals: [
+    'start',
+    'best',
+    'stuck',
+    'timeout',
+    'end',
+    'rounds',
+  ],
+  timeOutMS: 300 * SEC,
 };
 
+const nGenes = 8;
+
 /**
- * @param {Uint32Array|Uint16Array|Uint8Array} cand
- * @return {{pMutate: number, acc: number, nElite: number, popSize: *, minNGeneMut: number, timeOutMS: number, maxNGeneMut: number, nGenes: number}} opts
+ * @param {Uint32Array|Uint16Array|Uint8Array|Float64Array|Float32Array|Int32Array|Int8Array|Int16Array} cand
+ * @returns {!Object} opts
  */
 function decodeCand(cand) {
-  const nGenes = 1000;
   return {
-    nGenes,
-    timeOutMS: 12 * SEC,
-    nElite: cand[0] / 2 ** opts.nGenes,
-    popSize: Math.max(10, cand[1]),
-    minNGeneMut: Math.min(10, cand[2]),
-    pMutate: cand[3] / 2 ** opts.nGenes,
-    acc: cand[4] / ((2 ** opts.nGenes) * 10),
+    acc: cand[4] / ((2 ** nGenes) * 10),
     maxNGeneMut: Math.min(nGenes, cand[5]),
+    minNGeneMut: Math.min(1, cand[2]),
+    nElite: cand[0] / 2 ** nGenes,
+    pMutate: cand[3] / 2 ** nGenes,
+    popSize: Math.max(10, cand[1]),
+    timeOutMS: 12 * SEC,
   };
 }
 
 /**
  * @param {Uint32Array|Uint16Array|Uint8Array} cand
- * @return {!Number} fitness score
+ * @returns {!number} fitness score
  */
 function fitness(cand) {
-  const cfg = decodeCand(cand);
   const f = c => c.reduce((g1, g2) => g1 + g2, 0);
-  const maximizer = new GA(f, cfg);
-  maximizer.on('start', (time, me) => console.log('sub-algorithm started',  me));
+  const maximizer = new GA(f, 12, 'f32', decodeCand(cand));
+  maximizer.on('start', (time, me) => console.log('sub-algorithm started', me));
   maximizer.on('stuck', () => console.log(`sub-algorithm [STUCK]`));
   maximizer.on('timeout', () => console.log(`sub-algorithm [TIMEOUT]`));
   maximizer.on('rounds', () => console.log(`sub-algorithm [ROUNDS]`));
@@ -51,7 +57,7 @@ function fitness(cand) {
   return f(bestCand);
 }
 
-const metaParamSetter = new GA(fitness, opts);
+const metaParamSetter = new GA(fitness, nGenes, 'u8', opts);
 
 // use the EventEmitter API for getting profiling
 metaParamSetter.on('start', time => console.log(`started at ${new Date(time).toTimeString()}`));
