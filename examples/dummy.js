@@ -3,27 +3,30 @@
 const GA = require('..');
 const SEC = 1000;
 
-const f = xs => xs.reduce((x, y) => x + y, 0);
+const f = xs => xs.map(x => Math.abs(x)).reduce((x, y) => x + y, 0);
 
 const opts = {
-  minNGeneMut: 1,
-  maxNGeneMut: 10,
-  minImprove: 0.00001,
-  nBits: 32,
+  dtype: 'f32',
   nElite: 10,
-  nGenes: 100,
-  nRounds: 1E7,
-  pMutate: 0.2,
+  nGenes: 1000,
+  pMutate: 0.02,
+  acc: 0.0000001,
   popSize: 120,
   timeOutMS: 120 * SEC,
-  nTrack: 200,
+  signals: [
+    'best',
+    'start',
+    'stuck',
+    'end',
+    'rounds',
+  ],
 };
 
 const ga = new GA(f, opts);
 
 // use the EventEmitter API for getting profiling
-ga.on('start', time => console.log(`started at ${new Date(time).toTimeString()}`));
-ga.on('best', (_bestCand, fitness, _) => console.log((fitness / (10000 * 2 ** 32)).toPrecision(4)));
+ga.on('start', (time, cfg) => console.log(`started at ${new Date(time).toTimeString()} with cfg`, cfg));
+ga.on('best', (_bestCand, fitness) => console.log(fitness));
 ga.on('stuck', () => console.log(`[STUCK]`));
 ga.on('timeout', () => console.log(`[TIMEOUT]`));
 ga.on('rounds', () => console.log(`[ROUNDS]`));

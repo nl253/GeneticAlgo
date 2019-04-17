@@ -10,10 +10,33 @@
  */
 const { EventEmitter } = require('events');
 
+const SEC = 1000;
+const bitRegex = /8|16|32|64/;
+
+/**
+ * @param {!String} dtype
+ * @return {Float32ArrayConstructor|Float64ArrayConstructor|Int8ArrayConstructor|Int16ArrayConstructor|Int32ArrayConstructor|Uint8ArrayConstructor|Uint16ArrayConstructor|Uint32ArrayConstructor|never} constructor
+ */
+function getConst(dtype) {
+  if (dtype.toLowerCase() !== dtype) {
+    return getConst(dtype.toLowerCase());
+  } 
+  const nBits = bitRegex.exec(dtype)[0];
+  if (dtype.startsWith('f')) {
+    return eval(`Float${nBits}Array`);
+  } else if (dtype.startsWith('i')) {
+    return eval(`Int${nBits}Array`);
+  } else if (dtype.startsWith('u')) {
+    return eval(`Uint${nBits}Array`);
+  } else {
+    throw new Error(`unrecognised dtype "${dtype}"`);
+  }
+}
+
 class GeneticAlgorithm extends EventEmitter {
   /**
    * @param {!function((Uint8Array|Uint16Array|Uint32Array)): !Number} f
-   * @param {{maxRandVal: !Number, acc: !Number, nGenes: !Number, nElite: !Number, minImprove: !Number, nBits: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, nRounds: !Number, pMutate: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
+   * @param {{maxRandVal: !Number, minRandVal: !Number, acc: !Number, nGenes: !Number, nElite: !Number, minImprove: !Number, dtype: !String, maxNGeneMut: !Number, minNGeneMut: !Number, nRounds: !Number, pMutate: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
    */
   constructor(f, opts = {}) {
     super();
@@ -21,27 +44,56 @@ class GeneticAlgorithm extends EventEmitter {
       f,
       minImprove: 1E-4,
       minNGeneMut: 1,
-      nBits: 8,
       nElite: 10,
       nGenes: 10,
       nRounds: 1e6,
       nTrack: 50,
+      signals: ['start', 'end', 'timeout', 'stuck'],
       pMutate: 0.01,
+      dtype: 'u8',
       popSize: 100,
-      timeOutMS: 30 * 1000,
+      timeOutMS: 30 * SEC,
     }, opts));
-    this.acc = this.acc || 1 / (this.nRounds * 1E3) || 1E-5;
-    this.maxNGeneMut = this.maxNGeneMut || Math.floor(Math.log2(this.nGenes));
-    this.nElite = this.nElite < 1 ? Math.floor(this.nElite * this.popSize) : this.nElite;
-    if (this.nElite < 1) {
-      console.warn('nElite too small, setting to 1/10');
-      this.nElite = Math.max(1, Math.floor(this.popSize * 0.1));
+    this.nBits = parseInt(bitRegex.exec(this.dtype)[0]);
+    this.signals = new Set(this.signals);
+    this.acc = this.acc || 1 / (this.nRounds * 1000) || 1E-5;
+    if (this.maxNGeneMut === undefined) {
+      this.maxNGeneMut = Math.floor(Math.log2(this.nGenes));
     }
-    this.maxRandVal = this.maxRandVal || 2 ** this.nBits - 1;
+    if (this.nElite < 1) {
+      this.nElite = Math.floor(this.nElite * this.popSize);
+    } 
+    if (this.maxRandVal === undefined) {
+      if (this.dtype.startsWith('f')) {
+        if (this.nBits === 32) {
+          this.maxRandVal = (3.4 * (10 ** 38) - 1) / 1E4;
+        } else if (this.nBits === 64) {
+          this.maxRandVal = (1.8 * (10 ** 308)) / 1E4;
+        }
+      } else if (this.dtype.startsWith('i')) {
+        this.maxRandVal = 2 ** (this.nBits - 1) - 1;
+      } else if (this.dtype.startsWith('u')) {
+        this.maxRandVal = 2 ** this.nBits - 1;
+      }
+    }
+    if (this.minRandVal === undefined) {
+      if (this.dtype.startsWith('f')) {
+        if (this.nBits === 32) {
+          this.minRandVal = (1.2 * (10 ** -38)) / 1E4;
+        } else if (this.nBits === 64) {
+          this.minRandVal = (5 * (10 ** -324)) / 1E4;
+        }
+      } else if (this.dtype.startsWith('i')) {
+        this.minRandVal = -(2 ** (this.nBits - 1)) + 1;
+      } else if (this.dtype.startsWith('u')) {
+        this.minRandVal = 0;
+      }
+    }
+    // validation
     if (this.popSize < 10) {
       throw new Error('pop size too small, min 10');
     }
-    if (this.nBits !== 8 && this.nBits !== 16 && this.nBits !== 32) {
+    if (this.nBits !== 8 && this.nBits !== 16 && this.nBits !== 32 && this.nBits !== 64) {
       throw new Error('nBits must be EITHER 8 OR 16 OR 32');
     }
     if (this.nElite > this.popSize) {
@@ -57,12 +109,16 @@ class GeneticAlgorithm extends EventEmitter {
 
   * search() {
     const bufSize = this.popSize * this.nGenes * (this.nBits / 8);
-    // eslint-disable-next-line
-    const makePop = () => eval(`new Uint${this.nBits}Array(new ArrayBuffer(${bufSize}))`);
+    const typedArr = getConst(this.dtype);
+    const makePop = () => new typedArr(new ArrayBuffer(bufSize));
 
-    this.emit('generate');
+    if (this.signals.has('generate')) {
+      this.emit('generate');
+    }
     let pop = makePop();
-    this.emit('randomize');
+    if (this.signals.has('randomize')) {
+      this.emit('randomize');
+    }
 
     // initialise to pop to rand values
     for (let cIdx = 0; cIdx < this.popSize * this.nGenes; cIdx += this.nGenes) {
@@ -81,48 +137,66 @@ class GeneticAlgorithm extends EventEmitter {
     // indexes of candidates
     let candIdxs = new Uint32Array(new ArrayBuffer(this.popSize * 4)).map((_, idx) => idx);
 
-    this.on('round', (rIdx) => {
-      /*
-       * adaptive p(mutation)
-       * make it a function of time (#round)
-       */
-      this.emit('adapt', this.pMutate = this.pMutate + this.acc * rIdx);
-    });
+    if (this.signals.has('round') && this.signals.has('adapt')) {
+      this.on('round', (rIdx) => {
+        /*
+         * adaptive p(mutation)
+         * make it a function of time (#round)
+         */
+        this.emit('adapt', this.pMutate = this.pMutate + this.acc * rIdx);
+      });
+    }
 
     const startTm = Date.now();
-    this.emit('start', startTm, {
-      acc: this.acc,
-      maxNGeneMut: this.maxNGeneMut,
-      minImprove: this.minImprove,
-      minNGeneMut: this.minNGeneMut,
-      nElite: this.nElite,
-      nGenes: this.nGenes,
-      nRounds: this.nRounds,
-      nTrack: this.nTrack,
-      pMutate: this.pMutate,
-      popSize: this.popSize,
-      timeOutMS: this.timeOutMS,
-    });
+    if (this.signals.has('start')) {
+      this.emit('start', startTm, {
+        acc: this.acc,
+        dtype: this.dtype,
+        nBits: this.nBits,
+        maxNGeneMut: this.maxNGeneMut,
+        maxRandVal: this.maxRandVal,
+        minImprove: this.minImprove,
+        minNGeneMut: this.minNGeneMut,
+        minRandVal: this.minRandVal,
+        nElite: this.nElite,
+        nGenes: this.nGenes,
+        nRounds: this.nRounds,
+        nTrack: this.nTrack,
+        pMutate: this.pMutate,
+        popSize: this.popSize,
+        timeOutMS: this.timeOutMS,
+      });
+    }
 
     let rIdx = 0;
     while (true) {
       if (rIdx >= this.nRounds) {
-        this.emit('rounds');
+        if (this.signals.has('rounds')) {
+          this.emit('rounds');
+        }
         break;
       } else if ((Date.now() - startTm) >= this.timeOutMS) {
-        this.emit('timeout');
+        if (this.signals.has('timeout')) {
+          this.emit('timeout');
+        }
         break;
       } else if (maxScores !== null && rIdx > maxScores.length && maxScores.subarray(1)
         .map((f, idx) => f - maxScores[idx])
         .reduce((diff1, diff2) => diff1 + diff2) < this.minImprove) {
-        this.emit('stuck');
+        if (this.signals.has('stuck')) {
+          this.emit('stuck');
+        }
         break;
       } else {
-        this.emit('round', rIdx);
+        if (this.signals.has('round')) {
+          this.emit('round', rIdx);
+        }
         rIdx++;
       }
 
-      this.emit('score');
+      if (this.signals.has('score')) {
+        this.emit('score');
+      }
 
       // main thread handles the last quarter
       for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
@@ -144,8 +218,9 @@ class GeneticAlgorithm extends EventEmitter {
 
       candIdxs = candIdxs.sort((idx1, idx2) => (scores[idx1] > scores[idx2] ? -1 : 1));
 
-      this.emit('best', pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes),
-        bestF, improve);
+      if (this.signals.has('best')) {
+        this.emit('best', pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes), bestF, improve);
+      }
 
       for (let ptr = 0; ptr < this.popSize; ptr++) {
         const cIdx = candIdxs[ptr];
@@ -157,17 +232,21 @@ class GeneticAlgorithm extends EventEmitter {
       // go over non-elite units and use elite units for operators
       for (let cIdx = this.nElite * this.nGenes; cIdx < pop.length; cIdx += this.nGenes) {
         if (Math.random() < this.pMutate) {
-          this.emit('mutate');
+          if (this.signals.has('mutate')) {
+            this.emit('mutate');
+          }
           let pIdx;
           do {
             pIdx = Math.floor(Math.random() * this.popSize);
           } while (pIdx === cIdx);
           pop.set(pop.subarray(pIdx * this.nGenes, (pIdx + 1) * this.nGenes), cIdx);
           for (let i = 0; i < this.minNGeneMut + Math.floor(Math.random() * this.maxNGeneMut); i++) {
-            pop[cIdx + Math.floor(Math.random() * this.nGenes)] = Math.floor(Math.random() * this.maxRandVal);
+            pop[cIdx + Math.floor(Math.random() * this.nGenes)] = this.minRandVal + Math.floor(Math.random() * (this.maxRandVal - this.minRandVal));
           }
         } else {
-          this.emit('crossover');
+          if (this.signals.has('crossover')) {
+            this.emit('crossover');
+          }
           const maxIdx = cIdx / this.nGenes;
           let pIdx1;
           let
@@ -186,7 +265,9 @@ class GeneticAlgorithm extends EventEmitter {
       }
     }
 
-    this.emit('end', rIdx, new Date(), Date.now() - startTm);
+    if (this.signals.has('end')) {
+      this.emit('end', rIdx, new Date(), Date.now() - startTm);
+    }
     for (let cIdx = 0; cIdx < this.popSize * this.nGenes; cIdx += this.nGenes) {
       yield pop.subarray(cIdx, cIdx + this.nGenes);
     }

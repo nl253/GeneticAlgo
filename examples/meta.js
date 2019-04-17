@@ -10,6 +10,7 @@ const GA = require('..');
 const SEC = 1000;
 
 const opts = {
+  dtype: 'u8',
   nGenes: 8,
   timeOutMS: 300 * SEC,
   popSize: 10,
