@@ -7,15 +7,6 @@
 - uses truncation for selection
 - detects when the algorithm is stuck in a local minimum and returns
 
-E.g. an initial pop with `popSize = 4`, `nGenes = 2`, `dtype = 'u8'` will look something like this:
-
-```js
-[23,  0] // candidate 1
-[1,  41] // candidate 2
-[10,  1] // candidate 3
-[1, 100] // candidate 4
-```
-
 See API below.
 
 ## Installation
@@ -33,7 +24,7 @@ In a nutshell:
    selection.
 2. Provide `nGenes` (**INT** &gt; 0)
 3. Provide `dtype` ("f64", "f32", "i32", "i16", "i8", "u32", "u16", "u8")
-4. You probably want a decode function as well (see TIPS section below).
+4. You probably want a decode function as well (see **TIPS** section below).
 
 ```js
 const GA = require('genetic-algo')
@@ -54,6 +45,15 @@ for (let i = 0; i < bestCandidates.length; i++) {
   const candidate = bestCandidates[i]
   console.log(`[#${i}] with genes [${candidate.reduce((g1, g2) => g1 + ', ' + g2)}]`)
 }
+```
+
+E.g. an initial population with `popSize = 4`, `nGenes = 2`, `dtype = 'u8'` will look something like this:
+
+```js
+[23,  0] // candidate 1
+[1,  41] // candidate 2
+[10,  1] // candidate 3
+[1, 100] // candidate 4
 ```
 
 ## Default `opts`
