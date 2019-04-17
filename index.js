@@ -12,7 +12,7 @@ const { EventEmitter } = require('events');
 
 class GeneticAlgorithm extends EventEmitter {
   /**
-   * @param {!Function(Uint8Array|Uint16Array|Uint32Array): !Number} f
+   * @param {!function((Uint8Array|Uint16Array|Uint32Array)): !Number} f
    * @param {{maxRandVal: !Number, acc: !Number, nGenes: !Number, nElite: !Number, minImprove: !Number, nBits: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, nRounds: !Number, pMutate: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
    */
   constructor(f, opts = {}) {
@@ -55,7 +55,7 @@ class GeneticAlgorithm extends EventEmitter {
     }
   }
 
-  *search() {
+  * search() {
     const bufSize = this.popSize * this.nGenes * (this.nBits / 8);
     // eslint-disable-next-line
     const makePop = () => eval(`new Uint${this.nBits}Array(new ArrayBuffer(${bufSize}))`);
@@ -123,6 +123,8 @@ class GeneticAlgorithm extends EventEmitter {
       }
 
       this.emit('score');
+
+      // main thread handles the last quarter
       for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
         scores[cIdx] = this.f(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes));
       }
@@ -135,8 +137,7 @@ class GeneticAlgorithm extends EventEmitter {
       if (this.minImprove !== null) {
         // shift left
         maxScores.set(maxScores.subarray(1));
-        bestF = scores.filter(s => !Object.is(NaN, s) && !Object.is(Infinity, s))
-          .reduce((s1, s2) => Math.max(s1, s2), 0);
+        bestF = scores.filter(s => !Object.is(NaN, s) && !Object.is(Infinity, s)).reduce((s1, s2) => Math.max(s1, s2), 0);
         maxScores[maxScores.length - 1] = bestF;
         improve = bestF - maxScores[maxScores.length - 2];
       }

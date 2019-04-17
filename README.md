@@ -57,4 +57,4 @@ for (let i = 0; i < bestCandidates.length; i++) {
 
 ## Downsides
 
-- single-threaded
+- single-threaded (but see `./examples/parallel.js`)

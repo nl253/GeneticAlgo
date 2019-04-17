@@ -109,9 +109,9 @@
     ],
     "dot-notation": 1,
     "eol-last": 2,
-    "filenames/match-exported": 2,
+    "filenames/match-exported": 0,
     "filenames/match-regex": 2,
-    "filenames/no-index": 2,
+    "filenames/no-index": 0,
     "for-direction": 2,
     "generator-star-spacing": [
       1,
@@ -264,12 +264,8 @@
     "no-octal-escape": 2,
     "no-param-reassign": 2,
     "no-path-concat": 2,
-    "no-plusplus": [
-      1,
-      {
-        "allowForLoopAfterthoughts": true
-      }
-    ],
+    "no-plusplus": 0,
+    "max-len": 0,
     "no-process-env": 2,
     "no-process-exit": 2,
     "no-proto": 2,
