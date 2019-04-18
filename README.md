@@ -41,7 +41,7 @@ const ga = new GA(fitnessFunction, 12, 'u32')
 const bestCandidates = Array.from(ga.search()) // this is a GENERATOR
 ```
 
-E.g. an initial population with `popSize = 4`, `nGenes = 2`, `dtype = 'u8'` will look something like this:
+E.g. an initial population with `popSize = 5`, `nGenes = 2`, `dtype = 'u8'` will look something like this:
 
 ```js
 //  gene1 gene2 
@@ -49,7 +49,7 @@ E.g. an initial population with `popSize = 4`, `nGenes = 2`, `dtype = 'u8'` will
     [ 1,    41] // candidate 2
     [10,     1] // candidate 3
     [ 1,   100] // candidate 4
-    [ 0,   999] // candidate 5
+    [ 0,   222] // candidate 5
 ```
 
 ## Default `opts`
