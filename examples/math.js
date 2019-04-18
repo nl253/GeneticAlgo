@@ -10,16 +10,9 @@ const dtype = 'u8';
 const nGenes = 6;
 
 const opts = {
-  nElite: 6,
-  nTrack: 1000,
-  pMutate: 0.8,
-  popSize: 40,
-  signals: [
-    'stuck',
-    'end',
-    'timeout',
-    'rounds',
-  ],
+  nTrack: 500,
+  popSize: 1500,
+  nRounds: 100000,
   timeOutMS: 30 * SEC,
 };
 
@@ -34,13 +27,21 @@ console.log('TASK: find x1, x2, x3, x4, x5, x6 such that log2(x1) * x2^x3 / x4 +
 
 const results = ga.search();
 
+const seen = new Set();
+
 for (const best of results) {
+  const s = best.join(',');
+  if (seen.has(s)) {
+    continue;
+  } else {
+    seen.add(s);
+  }
   const y = f(best);
   if (y === 0) {
-    console.log(Array
-      .from(best)
-      .map((x, idx) => `x${idx + 1} = ${x}`)
-      .reduce((s1, s2) => `${s1}, ${s2}`));
+    // console.log(Array
+      // .from(best)
+      // .map((x, idx) => `x${idx + 1} = ${x}`)
+      // .reduce((s1, s2) => `${s1}, ${s2}`));
     console.log(`log2(${best[0]}) * ${best[1]}^${best[2]} / ${best[3]} + ${best[4]}^log2(${best[5]}) = ${y}`);
   }
 }

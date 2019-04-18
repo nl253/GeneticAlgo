@@ -4,7 +4,6 @@
 - candidates are typed arrays (`float32 | float64 | uint32 ...`)
 - adaptive `pMutate`
 - elitism (preserves top candidates)
-- uses truncation for selection
 - detects when the algorithm is stuck in a local minimum and returns
 
 See API below.
@@ -80,26 +79,17 @@ const opts = {
   nTrack: 50,          
 
   // it's adaptive so it will go up with 'time'
-  pMutate: 0.01,       
+  // if you *don't* set it, it will grow with time based on nRounds
+  // and based on how fit the candidate is (more fit => more likely to use mutation)
+  pMutate: null,       
 
-  // it makes sense for it to be 50 - 500 ish (default: 100, works well)
+  // it makes sense for it to be 50 - 1500 ish
   popSize: 100,        
 
-  // how quickly pMutate grows (this needs to be < 1)
-  acc: 1E-5,           
-
   // when mutating, the value of a gene is replaced with a random value
+  // this is set intelligently based on dtype
   maxRandVal: 10000,   
-  minRandVal: 0,       
-
-  // enable emitting signals (GA implements EventEmitter, see below)
-  signals: [           
-    'best',
-    'start',
-    'stuck',
-    'end',
-    'rounds',
-  ],
+  minRandVal: 0,        
 }
 ```
 
@@ -134,12 +124,10 @@ function fitnessFunction(cand) {
 
 ## Profiling with EventEmitter API
 
-The `GeneticAlgorithm` will emit several signals along with some information
+The `GeneticAlgorithm` emits signals along with some information
 which can be used for profiling.
 
 **NOTE** data emitted is in sub-bullets.
-
-By default these are emitted:
 
 - `"start"` when `.search()` is called
   - **INT** `startTime`
@@ -150,19 +138,19 @@ By default these are emitted:
   - **INT** `roundNumber`
   - **DATE** `dateFinished`
   - **INT** `msTook`
-
-You can also enable these (see `signals` in `opts` in the constructor):
-
 - `"round"` on every round start.
 - `"rounds"` when `nRounds` limit reached.
+- `"mutate"` on choosing mutation as opposed to crossover.
+  - **INT** `nMutations` number of mutations.
+  - **FLOAT** `pMutate` computed probability of mutation (this makes sens when `pMutate = null` which makes it adaptive).
+- `"crossover"` on choosing mutation as opposed to crossover.
+  - **FLOAT** `pCrossover` computed probability of crossover (this makes sens when `pMutate = null` which makes it adaptive).
 - `"best"` after all candidates have been evaluated and the best candidate is selected.
   - **TYPED ARRAY** `bestCandidate`
   - **FLOAT** `scoreOfBestCandidate`
   - **FLOAT** `improvementSinceLastRound`
 - `"generate"` when generating initial population.
 - `"randomize"` when setting random genes in the initial population.
-- `"adapt"` when `pMutate` is adjusted (done every round).
-  - **FLOAT** `newProbMutate`
 - `"score"` when scoring candidate solutions.
 
 To see how you can extract the data from these signals (emitted) see examples in `./examples/`.

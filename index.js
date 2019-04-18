@@ -6,7 +6,7 @@
  * - rank-based selection
  * - timeout finish
  * - nRound finish
- * - adaptive probability (increases and accelerates as time increases)
+ * - adaptive probability
  */
 const { EventEmitter } = require('events');
 
@@ -16,12 +16,11 @@ const DTYPES = new Set(['f64', 'f32', 'i32', 'i16', 'i8', 'u32', 'u16', 'u8']);
 const MIN_POPSIZE = 5;
 const DEFAULTS = {
   minImprove: 1E-4,
+  pMutate: null,
   minNGeneMut: 1,
   nElite: 0.1,
-  nRounds: 1e6,
+  nRounds: 1E6,
   nTrack: 50,
-  signals: ['start', 'end', 'timeout', 'stuck'],
-  pMutate: 0.01,
   popSize: 100,
   timeOutMS: 30 * SEC,
 };
@@ -52,7 +51,7 @@ class GeneticAlgorithm extends EventEmitter {
    * @param {!function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} f
    * @param {!Number} nGenes
    * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
-   * @param {{maxRandVal: !Number, minRandVal: !Number, acc: ?Number, nGenes: !Number, nElite: !Number, minImprove: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, nRounds: !Number, pMutate: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number, signals: !Array<('best'|'score'|'mutate'|'crossover'|'start'|'end'|'adapt'|'timeout'|'rounds'|'round'|'generate'|'randomize')>}} [opts]
+   * @param {{maxRandVal: !Number, minRandVal: !Number, nGenes: !Number, nElite: !Number, minImprove: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, nRounds: !Number, pMutate: ?Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
    */
   constructor(f, nGenes, dtype, opts = {}) {
     super();
@@ -79,6 +78,9 @@ class GeneticAlgorithm extends EventEmitter {
     if (opts.nTrack !== undefined && opts.nTrack < 0) {
       throw new Error('`nTrack` CANNOT be negative');
     }
+    if (opts.nTrack !== undefined && opts.nTrack < 2) {
+      throw new Error('`nTrack` MUSTBE greater than or equal to 2');
+    }
     if (opts.nElite !== undefined && !Number.isInteger(opts.nElite) && opts.nElite > 1) {
       throw new Error('`nElite` must be EITHER an int specifying the number of elite candidate OR a ratio, a float between 0 and 1');
     }
@@ -103,9 +105,6 @@ class GeneticAlgorithm extends EventEmitter {
     if (opts.pMutate !== undefined && opts.pMutate > 1) {
       throw new Error('`pMutate` is a probability so it must be BETWEEN 0 AND 1');
     }
-    if (opts.acc !== undefined && opts.acc > 1) {
-      throw new Error('`acc` must be a tiny value BETWEEN 0 AND 1');
-    }
 
     const DERIVED_OPTS = {
       f,
@@ -122,12 +121,6 @@ class GeneticAlgorithm extends EventEmitter {
         Object.assign(
           Object.assign({}, DEFAULTS),
           opts)));
-    
-    this.signals = new Set(this.signals);
-
-    if (this.acc === undefined) {
-      this.acc = 1 / (this.nRounds * 1000) || 1E-5;
-    }
 
     if (this.nElite < 1) {
       this.nElite = Math.floor(this.nElite * this.popSize);
@@ -158,13 +151,11 @@ class GeneticAlgorithm extends EventEmitter {
     const typedArr = getConst(this.dtype);
     const makePop = () => new typedArr(new ArrayBuffer(bufSize));
 
-    if (this.signals.has('generate')) {
-      this.emit('generate');
-    }
+    this.emit('generate');
+
     let pop = makePop();
-    if (this.signals.has('randomize')) {
-      this.emit('randomize');
-    }
+
+    this.emit('randomize');
 
     // initialise to pop to rand values
     for (let cIdx = 0; cIdx < this.popSize * this.nGenes; cIdx += this.nGenes) {
@@ -180,69 +171,46 @@ class GeneticAlgorithm extends EventEmitter {
 
     // fitness score for every corresponding candidate
     const scores = new Float32Array(new ArrayBuffer(this.popSize * 4));
+
     // indexes of candidates
     let candIdxs = new Uint32Array(new ArrayBuffer(this.popSize * 4)).map((_, idx) => idx);
 
-    if (this.acc !== null && this.signals.has('round') && this.signals.has('adapt')) {
-      this.on('round', (rIdx) => {
-        /*
-         * adaptive p(mutation)
-         * make it a function of time (#round)
-         */
-        this.emit('adapt', this.pMutate = this.pMutate + this.acc * rIdx);
-      });
-    }
-
     const startTm = Date.now();
-    if (this.signals.has('start')) {
-      this.emit('start', startTm, {
-        acc: this.acc,
-        dtype: this.dtype,
-        nBits: this.nBits,
-        maxNGeneMut: this.maxNGeneMut,
-        maxRandVal: this.maxRandVal,
-        minImprove: this.minImprove,
-        minNGeneMut: this.minNGeneMut,
-        minRandVal: this.minRandVal,
-        nElite: this.nElite,
-        nGenes: this.nGenes,
-        nRounds: this.nRounds,
-        nTrack: this.nTrack,
-        pMutate: this.pMutate,
-        popSize: this.popSize,
-        timeOutMS: this.timeOutMS,
-      });
-    }
+
+    this.emit('start', startTm, {
+      dtype: this.dtype,
+      nBits: this.nBits,
+      maxNGeneMut: this.maxNGeneMut,
+      maxRandVal: this.maxRandVal,
+      minImprove: this.minImprove,
+      minNGeneMut: this.minNGeneMut,
+      minRandVal: this.minRandVal,
+      nElite: this.nElite,
+      nGenes: this.nGenes,
+      nRounds: this.nRounds,
+      nTrack: this.nTrack,
+      pMutate: this.pMutate,
+      popSize: this.popSize,
+      timeOutMS: this.timeOutMS,
+    });
 
     let rIdx = 0;
+
     while (true) {
       if (rIdx >= this.nRounds) {
-        if (this.signals.has('rounds')) {
-          this.emit('rounds');
-        }
+        this.emit('rounds');
         break;
       } else if ((Date.now() - startTm) >= this.timeOutMS) {
-        if (this.signals.has('timeout')) {
-          this.emit('timeout');
-        }
+        this.emit('timeout');
         break;
-      } else if (maxScores !== null && rIdx > maxScores.length && maxScores.subarray(1)
-        .map((f, idx) => f - maxScores[idx])
-        .reduce((diff1, diff2) => diff1 + diff2) < this.minImprove) {
-        if (this.signals.has('stuck')) {
-          this.emit('stuck');
-        }
+      } else if (maxScores !== null && rIdx > maxScores.length && maxScores.subarray(1).map((f, idx) => f - maxScores[idx]).reduce((diff1, diff2) => diff1 + diff2) < this.minImprove) { 
+        this.emit('stuck');
         break;
       } else {
-        if (this.signals.has('round')) {
-          this.emit('round', rIdx);
-        }
         rIdx++;
       }
 
-      if (this.signals.has('score')) {
-        this.emit('score');
-      }
+      this.emit('score');
 
       // main thread handles the last quarter
       for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
@@ -264,9 +232,7 @@ class GeneticAlgorithm extends EventEmitter {
 
       candIdxs = candIdxs.sort((idx1, idx2) => (scores[idx1] > scores[idx2] ? -1 : 1));
 
-      if (this.signals.has('best')) {
-        this.emit('best', pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes), bestF, improve);
-      }
+      this.emit('best', pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes), bestF, improve);
 
       for (let ptr = 0; ptr < this.popSize; ptr++) {
         const cIdx = candIdxs[ptr];
@@ -275,45 +241,58 @@ class GeneticAlgorithm extends EventEmitter {
 
       pop = newPop;
 
-      // go over non-elite units and use elite units for operators
+      // go over non-elite units (elitism - leave best units unaltered)
+      //
+      // NOTE: order is as follows: [best, second best, third best, ..., worst]
+      // so you want to apply mutation to best BUT crossover to worst
+      // to do that, make the probability a funciton of the position in the array
+      //
+      // You also want to increase the p of mutation as you approach the end of running the algorithm
+      // meaning as rIdx approaches nRounds, pMutate approaches 0.8 (or something similar).
+      //
       for (let cIdx = this.nElite * this.nGenes; cIdx < pop.length; cIdx += this.nGenes) {
-        if (Math.random() < this.pMutate) {
-          if (this.signals.has('mutate')) {
-            this.emit('mutate');
-          }
-          let pIdx;
-          do {
-            pIdx = Math.floor(Math.random() * this.popSize);
-          } while (pIdx === cIdx);
-          pop.set(pop.subarray(pIdx * this.nGenes, (pIdx + 1) * this.nGenes), cIdx);
-          for (let i = 0; i < this.minNGeneMut + Math.floor(Math.random() * this.maxNGeneMut); i++) {
-            pop[cIdx + Math.floor(Math.random() * this.nGenes)] = this.minRandVal + Math.floor(Math.random() * (this.maxRandVal - this.minRandVal));
+
+        const pMutate = this.pMutate === null ? (1 - ((cIdx / this.nGenes) / this.popSize)) * (rIdx / this.nRounds) : this.pMutate;
+
+        if (Math.random() < pMutate) {
+
+          // UNIQUE mutations (on different genes)
+          const nMutations = this.minNGeneMut + Math.floor(Math.random() * (this.maxNGeneMut - this.minNGeneMut));
+
+          this.emit('mutate', nMutations, pMutate);
+
+          // make sure that you don't mutate the same gene twice
+          const mutated = new Set();
+
+          for (let i = 0; i < nMutations; i++) {
+            let geneIdx;
+            do { geneIdx = Math.floor(Math.random() * this.nGenes); } while (mutated.has(geneIdx));
+            mutated.add(geneIdx);
+            pop[cIdx + geneIdx] = this.minRandVal + Math.floor(Math.random() * (this.maxRandVal - this.minRandVal));
           }
         } else {
-          if (this.signals.has('crossover')) {
-            this.emit('crossover');
-          }
-          const maxIdx = cIdx / this.nGenes;
+          this.emit('crossover', 1 - pMutate);
           let pIdx1;
-          let
-            pIdx2;
-          do {
-            pIdx1 = Math.floor(Math.random() * maxIdx);
-          } while (pIdx1 === cIdx);
-          do {
-            pIdx2 = Math.floor(Math.random() * maxIdx);
-          } while (pIdx2 === cIdx || pIdx2 === pIdx1);
+          let pIdx2;
+          // 1/10 of the time, choose elites, this way, you can maintain a small population of elites
+          // and still make rapid progress
+          if (this.nElite > 5 && Math.random() < 0.1) {
+            do { pIdx1 = Math.floor(Math.random() * this.nElite); } while (pIdx1 === cIdx);
+            do { pIdx2 = Math.floor(Math.random() * this.nElite); } while (pIdx2 === cIdx || pIdx2 === pIdx1);
+          } else {
+            const maxIdx = cIdx / this.nGenes;
+            do { pIdx1 = Math.floor(Math.random() * maxIdx); } while (pIdx1 === cIdx);
+            do { pIdx2 = Math.floor(Math.random() * maxIdx); } while (pIdx2 === cIdx || pIdx2 === pIdx1);
+          }
           const coPoint = Math.floor(Math.random() * (this.nGenes + 1));
           pop.set(pop.subarray(pIdx1 * this.nGenes, pIdx1 * this.nGenes + coPoint), cIdx);
-          pop.set(pop.subarray(pIdx2 * this.nGenes + coPoint, (pIdx2 + 1) * this.nGenes),
-            cIdx + coPoint);
+          pop.set(pop.subarray(pIdx2 * this.nGenes + coPoint, (pIdx2 + 1) * this.nGenes), cIdx + coPoint);
         }
       }
     }
 
-    if (this.signals.has('end')) {
-      this.emit('end', rIdx, new Date(), Date.now() - startTm);
-    }
+    this.emit('end', rIdx, new Date(), Date.now() - startTm);
+
     for (let cIdx = 0; cIdx < this.popSize * this.nGenes; cIdx += this.nGenes) {
       yield pop.subarray(cIdx, cIdx + this.nGenes);
     }
