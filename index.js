@@ -207,6 +207,7 @@ class GeneticAlgorithm extends EventEmitter {
         this.emit('stuck');
         break;
       } else {
+        this.emit('round');
         rIdx++;
       }
 

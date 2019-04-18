@@ -1,7 +1,7 @@
-# Genetic Algorithm
+# Genetic Algorithm (ALPHA STAGE)
 
 - use when search space is too large to use brute-force
-- candidates are typed arrays (`float32 | float64 | uint32 ...`)
+- candidates are typed arrays (`Float32 | Float64 | Uint32 ...`)
 - adaptive `pMutate`
 - elitism (preserves top candidates)
 - detects when the algorithm is stuck in a local minimum and returns
@@ -31,23 +31,25 @@ const GA = require('genetic-algo')
 // silly fitness function (see below for a better example)
 const fitnessFunction = arr => arr.reduce((x, y) => x + y, 0) 
 
-// fitnessFunction [NEEDED]   function(TypedArray): number
-// nGenes          [NEEDED]   int (each candidate is a typed array of length equal to nGenes)
+// fitnessFunction [NEEDED]   function(TypedArray): Number
+// nGenes          [NEEDED]   Int (each candidate is a typed array of length equal to nGenes)
 // dtype           [NEEDED]   'u32' | 'u16' | 'u8' | 'i32' | 'i16' | 'i8' | 'f32' | 'f64' 
-// opts            [OPTIONAL] object (see `opts` below)
+// opts            [OPTIONAL] Object (see `opts` below)
 const ga = new GA(fitnessFunction, 12, 'u32')
 
-// Array<TypedArrays>
+// Array<TypedArray>
 const bestCandidates = Array.from(ga.search()) // this is a GENERATOR
 ```
 
 E.g. an initial population with `popSize = 4`, `nGenes = 2`, `dtype = 'u8'` will look something like this:
 
 ```js
-[23,  0] // candidate 1
-[1,  41] // candidate 2
-[10,  1] // candidate 3
-[1, 100] // candidate 4
+//  gene1 gene2 
+    [23,     0] // candidate 1
+    [ 1,    41] // candidate 2
+    [10,     1] // candidate 3
+    [ 1,   100] // candidate 4
+    [ 0,   999] // candidate 5
 ```
 
 ## Default `opts`
@@ -130,25 +132,25 @@ which can be used for profiling.
 **NOTE** data emitted is in sub-bullets.
 
 - `"start"` when `.search()` is called
-  - **INT** `startTime`
-  - **OBJECT** `opts`
+  - **Int** `startTime` in milliseconds
+  - **Object** `opts`
 - `"timeout"` when `timeOutMS` limit reached.
 - `"stuck"` when stuck in a local minimum.
 - `"end"` when finished.
-  - **INT** `roundNumber`
-  - **DATE** `dateFinished`
-  - **INT** `msTook`
+  - **Int** `roundNumber`
+  - **Date** `dateFinished`
+  - **Int** `msTook`
 - `"round"` on every round start.
 - `"rounds"` when `nRounds` limit reached.
 - `"mutate"` on choosing mutation as opposed to crossover.
-  - **INT** `nMutations` number of mutations.
-  - **FLOAT** `pMutate` computed probability of mutation (this makes sens when `pMutate = null` which makes it adaptive).
-- `"crossover"` on choosing mutation as opposed to crossover.
-  - **FLOAT** `pCrossover` computed probability of crossover (this makes sens when `pMutate = null` which makes it adaptive).
+  - **Int** `nMutations` number of genes to mutate.
+  - **Float** `pMutate` computed probability of mutation (this makes sense when `pMutate = null` which makes it adaptive).
+- `"crossover"` on choosing crossover as opposed to mutation.
+  - **Float** `pCrossover` computed probability of crossover (this makes sense when `pMutate = null` which makes it adaptive).
 - `"best"` after all candidates have been evaluated and the best candidate is selected.
-  - **TYPED ARRAY** `bestCandidate`
-  - **FLOAT** `scoreOfBestCandidate`
-  - **FLOAT** `improvementSinceLastRound`
+  - **TypedArray** `bestCandidate`
+  - **Float** `scoreOfBestCandidate`
+  - **Float** `improvementSinceLastRound`
 - `"generate"` when generating initial population.
 - `"randomize"` when setting random genes in the initial population.
 - `"score"` when scoring candidate solutions.
