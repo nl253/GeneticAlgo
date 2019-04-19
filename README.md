@@ -3,6 +3,8 @@
 - use when search space is too large to use brute-force
   - e.g. solving equations, automating the process of design and solving
     combinatorial problems (e.g. timetable scheduling)
+  - many problems can be reformulated as looking for a solution in
+    n-dimensional search space
 - candidates are typed arrays (`Float32 | Float64 | Int32 | Int16 | Int8 | Uint32 | Uint16 | Uint8`)
 - adaptive probability of mutation
 - elitism (preserves top candidates)
@@ -20,10 +22,10 @@ $ npm install genetic-algo
 
 In a nutshell:
 
-1. Provide a fitness function that accepts a candidate (typed array) and
-   returns a number. The candidates that score the highest will be favoured in the
+1. Provide `nGenes` (**Int** &gt; 0)
+2. Provide a fitness function that accepts a candidate (typed array) and
+   returns a number. Each candidate is of length `nGenes`. The candidates that score the highest will be favoured in the
    selection and will make it to the next gene pool.
-2. Provide `nGenes` (**Int** &gt; 0)
 3. Provide `dtype`, one of: `"f64" | "f32" | "i32" | "i16" | "i8" | "u32" | "u16" | "u8"`
 4. [EXTRA] You probably want a decode function as well (see **TIPS** section below).
 
