@@ -67,7 +67,7 @@ const opts = {
   // stop condition
   nRounds: 1E6,      
 
-  // if you *don't* set it, it will grow with time
+  // if you *don't* set it, it will grow with time (based on how close timeTaken is to timeOutMS)
   // and based on how fit the candidate is (more fit => more likely to use mutation)
   pMutate: null,       
 
@@ -76,19 +76,20 @@ const opts = {
   popSize: 300,        
 
   // 0.2 is 20%, 10 is 10
+  // (if you find that the algorithm gets stuck too quickly, decrease it)
   nElite: 0.2,         
 
   // when mutating, target at least 1 gene
   minNGeneMut: 1,      
 
   // by default it's set to a small value based on minNGeneMut and nGenes (the more genes, the higer it is)
+  // (it should not be too high because the point of mutations it to introduce novelty in a controlled way)
   maxNGeneMut: null,     
 
   // keep track of improvements in previous rounds to detect local minima
   // (if you find that the algorithm gets stuck too quickly, increase it)
   nTrack: 100,          
-  // this is used to detect being stuck local minima (no improvment)
-  // (you should not need to change it)
+  // this is used to detect being stuck local minima (no improvement), you should not need to change it
   minImprove: 1E-s6,    
 
   // when mutating, the value of a gene is replaced with a random value
