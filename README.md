@@ -70,6 +70,7 @@ const opts = {
 
   // if you *don't* set it, it will grow with time (based on how close timeTaken is to timeOutMS)
   // and based on how fit the candidate is (more fit => more likely to use mutation)
+  // you are encouraged not to modify it, if you do, you should set it to a small value e.g. 0.05
   pMutate: null,       
 
   // it makes sense for it to be 100 - 1500 ish
