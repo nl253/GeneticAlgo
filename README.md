@@ -37,10 +37,7 @@ const GA = require('genetic-algo')
 // silly fitness function, maximises values of all genes (see below for a better example)
 const fitnessFunction = arr => arr.reduce((x, y) => x + y, 0) 
 
-// fitnessFunction [NEEDED]   function(TypedArray): Number
-// nGenes          [NEEDED]   Int (each candidate is a typed array of length equal to nGenes)
-// dtype           [NEEDED]   'u32' | 'u16' | 'u8' | 'i32' | 'i16' | 'i8' | 'f32' | 'f64' 
-// opts            [OPTIONAL] Object (see `opts` below)
+// new GA(fitnessFunction, nGenes, dtype, [OPTIONAL] opts - see below) 
 const ga = new GA(fitnessFunction, 12, 'u32')
 
 // Array<TypedArray>
