@@ -1,8 +1,10 @@
 # Genetic Algorithm (ALPHA STAGE)
 
 - use when search space is too large to use brute-force
-- candidates are typed arrays (`Float32 | Float64 | Uint32 ...`)
-- adaptive `pMutate`
+  - e.g. solving equations, automating the process of design and solving
+    combinatorial problems (e.g. timetable scheduling)
+- candidates are typed arrays (`Float32 | Float64 | Int32 | Int16 | Int8 | Uint32 | Uint16 | Uint8`)
+- adaptive probability of mutation
 - elitism (preserves top candidates)
 - detects when the algorithm is stuck in a local minimum and returns
 
@@ -19,16 +21,16 @@ $ npm install genetic-algo
 In a nutshell:
 
 1. Provide a fitness function that accepts a candidate (typed array) and
-   returns a number. The candidates that score highest will be favoured in the
-   selection.
-2. Provide `nGenes` (**INT** &gt; 0)
-3. Provide `dtype` ("f64", "f32", "i32", "i16", "i8", "u32", "u16", "u8")
-4. You probably want a decode function as well (see **TIPS** section below).
+   returns a number. The candidates that score the highest will be favoured in the
+   selection and will make it to the next gene pool.
+2. Provide `nGenes` (**Int** &gt; 0)
+3. Provide `dtype`, one of: `"f64" | "f32" | "i32" | "i16" | "i8" | "u32" | "u16" | "u8"`
+4. [EXTRA] You probably want a decode function as well (see **TIPS** section below).
 
 ```js
 const GA = require('genetic-algo')
 
-// silly fitness function (see below for a better example)
+// silly fitness function, maximises values of all genes (see below for a better example)
 const fitnessFunction = arr => arr.reduce((x, y) => x + y, 0) 
 
 // fitnessFunction [NEEDED]   function(TypedArray): Number
@@ -59,14 +61,22 @@ const SEC = 1000;
 
 const opts = {
 
-  // 0.2 is 20%, 10 is 10
-  nElite: 0.2,         
-
   // stop condition 
   timeOutMS: 30 * SEC, 
 
   // stop condition
   nRounds: 1E6,      
+
+  // if you *don't* set it, it will grow with time
+  // and based on how fit the candidate is (more fit => more likely to use mutation)
+  pMutate: null,       
+
+  // it makes sense for it to be 100 - 1500 ish
+  // (if you find that the algorithm gets stuck too quickly, increase it)
+  popSize: 300,        
+
+  // 0.2 is 20%, 10 is 10
+  nElite: 0.2,         
 
   // when mutating, target at least 1 gene
   minNGeneMut: 1,      
@@ -74,17 +84,12 @@ const opts = {
   // by default it's set to a small value based on minNGeneMut and nGenes (the more genes, the higer it is)
   maxNGeneMut: null,     
 
-  // this is used to detect being stuck local minima (no improvment)
-  minImprove: 1E-s6,    
-  // keep track of improvements in last 50 rounds to detect local minima
+  // keep track of improvements in previous rounds to detect local minima
+  // (if you find that the algorithm gets stuck too quickly, increase it)
   nTrack: 100,          
-
-  // if you *don't* set it, it will grow with time
-  // and based on how fit the candidate is (more fit => more likely to use mutation)
-  pMutate: null,       
-
-  // it makes sense for it to be 100 - 1500 ish
-  popSize: 300,        
+  // this is used to detect being stuck local minima (no improvment)
+  // (you should not need to change it)
+  minImprove: 1E-s6,    
 
   // when mutating, the value of a gene is replaced with a random value
   // this is set intelligently based on dtype
@@ -153,7 +158,7 @@ which can be used for profiling.
 - `"randomize"` when setting random genes in the initial population.
 - `"score"` when scoring candidate solutions.
 
-E.g.:
+Example of extracting data from signals:
 
 ```js
 ga.on('start', time => console.log(`[START] at ${new Date(time).toTimeString()}`));
@@ -163,8 +168,7 @@ ga.on('timeout', () => console.log(`[END] timeout`));
 ga.on('end', (rIdx, _date, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
 ```
 
-To see better examples of how you can extract the data from these signals (emitted) see [examples](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples).
-
+To see more examples see [examples](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples).
 
 ## Downsides
 
