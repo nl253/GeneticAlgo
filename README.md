@@ -92,7 +92,7 @@ const opts = {
   // (if you find that the algorithm gets stuck too quickly, increase it)
   nTrack: 100,          
   // this is used to detect being stuck local minima (no improvement), you should not need to change it
-  minImprove: 1E-s6,    
+  minImprove: 1E-6,    
 
   // when mutating, the value of a gene is replaced with a random value
   // this is set intelligently based on dtype
