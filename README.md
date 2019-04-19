@@ -18,6 +18,8 @@ See API below.
 $ npm install genetic-algo
 ```
 
+[NPM link](https://www.npmjs.com/package/genetic-algo).
+
 ## API
 
 In a nutshell:
@@ -176,3 +178,7 @@ To see more examples see [examples](https://github.com/nl253/GeneticAlgo-JS/tree
 ## Downsides
 
 - single-threaded (but see [parallel example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/parallel.js) that uses the cluster module from node stdlib).
+
+## License
+
+MIT
