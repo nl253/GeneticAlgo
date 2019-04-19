@@ -59,45 +59,43 @@ const SEC = 1000;
 
 const opts = {
 
-  // 0.1 is 10%, 10 is 10
-  nElite: 0.1,         
+  // 0.2 is 20%, 10 is 10
+  nElite: 0.2,         
 
   // stop condition 
   timeOutMS: 30 * SEC, 
 
+  // stop condition
+  nRounds: 1E6,      
+
   // when mutating, target at least 1 gene
   minNGeneMut: 1,      
 
-  // (default: max(1, floor(log2(nGenes)))),
-  maxNGeneMut: 10,     
+  // by default it's set to a small value based on minNGeneMut and nGenes (the more genes, the higer it is)
+  maxNGeneMut: null,     
 
   // this is used to detect being stuck local minima (no improvment)
-  minImprove: 1E-4,    
-
-  // stop condition
-  nRounds: 1E6,        
-
+  minImprove: 1E-s6,    
   // keep track of improvements in last 50 rounds to detect local minima
-  nTrack: 50,          
+  nTrack: 100,          
 
-  // it's adaptive so it will go up with 'time'
-  // if you *don't* set it, it will grow with time based on nRounds
+  // if you *don't* set it, it will grow with time
   // and based on how fit the candidate is (more fit => more likely to use mutation)
   pMutate: null,       
 
-  // it makes sense for it to be 50 - 1500 ish
-  popSize: 100,        
+  // it makes sense for it to be 100 - 1500 ish
+  popSize: 300,        
 
   // when mutating, the value of a gene is replaced with a random value
   // this is set intelligently based on dtype
-  maxRandVal: 10000,   
-  minRandVal: 0,        
+  maxRandVal: undefined,
+  minRandVal: undefined,
 }
 ```
 
 ## Tips
 
-It makes sense to have a `decode(cand)` function (see `./examples/meta.js`).  E.g.:
+It makes sense to have a `decode(cand)` function (see [examples](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples)).  E.g.:
 
 ```js
 function decode(cand) {
@@ -135,13 +133,13 @@ which can be used for profiling.
   - **Int** `startTime` in milliseconds
   - **Object** `opts`
 - `"timeout"` when `timeOutMS` limit reached.
+- `"rounds"` when `nRounds` limit reached.
 - `"stuck"` when stuck in a local minimum.
 - `"end"` when finished.
   - **Int** `roundNumber`
   - **Date** `dateFinished`
   - **Int** `msTook`
-- `"round"` on every round start.
-- `"rounds"` when `nRounds` limit reached.
+- `"round"` on every round start (**not** the same as `"rounds"`).
 - `"mutate"` on choosing mutation as opposed to crossover.
   - **Int** `nMutations` number of genes to mutate.
   - **Float** `pMutate` computed probability of mutation (this makes sense when `pMutate = null` which makes it adaptive).
@@ -155,8 +153,19 @@ which can be used for profiling.
 - `"randomize"` when setting random genes in the initial population.
 - `"score"` when scoring candidate solutions.
 
-To see how you can extract the data from these signals (emitted) see examples in `./examples/`.
+E.g.:
+
+```js
+ga.on('start', time => console.log(`[START] at ${new Date(time).toTimeString()}`));
+ga.on('best', (_bestCand, fitness, _) => console.log(fitness));
+ga.on('stuck', () => console.log(`[END] stuck`));
+ga.on('timeout', () => console.log(`[END] timeout`));
+ga.on('end', (rIdx, _date, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
+```
+
+To see better examples of how you can extract the data from these signals (emitted) see [examples](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples).
+
 
 ## Downsides
 
-- single-threaded (but see `./examples/parallel.js`)
+- single-threaded (but see [parallel example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/parallel.js) that uses the cluster module from node stdlib).

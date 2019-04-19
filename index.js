@@ -3,10 +3,9 @@
  *
  * - elitism
  * - local-minimum detection
- * - rank-based selection
+ * - truncation selection
  * - timeout finish
  * - nRound finish
- * - adaptive probability
  */
 const { EventEmitter } = require('events');
 
@@ -14,18 +13,23 @@ const SEC = 1000;
 const bitRegex = /8|16|32|64/;
 const DTYPES = new Set(['f64', 'f32', 'i32', 'i16', 'i8', 'u32', 'u16', 'u8']);
 const MIN_POPSIZE = 5;
+const MIN_NTRACK = 2;
+// when Int
+const MIN_NELITE = 2;
 const DEFAULTS = {
-  minImprove: 1E-4,
-  pMutate: null,
+  minImprove: 1E-6,
   minNGeneMut: 1,
-  nElite: 0.1,
+  nElite: 0.2,
+  nTrack: 100,
+  pMutate: null,
+  popSize: 300,
   nRounds: 1E6,
-  nTrack: 50,
-  popSize: 100,
   timeOutMS: 30 * SEC,
 };
 
 /**
+ * Get typed array constructor from string dtype.
+ *
  * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
  * @returns {Float32ArrayConstructor|Float64ArrayConstructor|Int8ArrayConstructor|Int16ArrayConstructor|Int32ArrayConstructor|Uint8ArrayConstructor|Uint16ArrayConstructor|Uint32ArrayConstructor|never} constructor
  * @private
@@ -51,68 +55,76 @@ class GeneticAlgorithm extends EventEmitter {
    * @param {!function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} f
    * @param {!Number} nGenes
    * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
-   * @param {{maxRandVal: !Number, minRandVal: !Number, nGenes: !Number, nElite: !Number, minImprove: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, nRounds: !Number, pMutate: ?Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
+   * @param {{maxRandVal: !Number, minRandVal: !Number, nElite: !Number, minImprove: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, pMutate: ?Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
    */
   constructor(f, nGenes, dtype, opts = {}) {
     super();
 
     // validation
-    if (dtype === undefined) {
-      throw new Error('you MUST set `dtype`');
+    for (const v of ['f', 'dtype', 'nGenes']) {
+      if (eval(v) === undefined) {
+        throw new Error(`you MUST set ${v}`);
+      }
     }
-    if (nGenes === undefined) {
-      throw new Error('you MUST set `nGenes`');
-    }
-    if (opts.popSize !== undefined && opts.popSize < MIN_POPSIZE) {
-      throw new Error(`population size too small, min ${MIN_POPSIZE}`);
+
+    if (nGenes < 1) {
+      throw new Error('nGenes MUST be at least 1');
     }
     if (!DTYPES.has(dtype)) {
       throw new Error(`unrecognised dtype "${dtype}", choose from: ${Array.from(DTYPES).join(', ')}`);
     }
+
+    const checkOpt = (v, p, msg) => {
+      if (opts[v] !== undefined && p(opts[v])) {
+        throw new Error(msg);
+      }
+    };
+
+    for (const vName of ['nRounds', 'nElite', 'pMutate', 'minNGeneMut', 'maxNGeneMut', 'nTrack', 'popSize', 'timeOutMS', 'minImprove']) {
+      checkOpt(vName, val => val < 0, `${vName} CANNOT be negative`);
+    }
+
+    for (const vName of ['nRounds', 'minNGeneMut', 'maxNGeneMut', 'nTrack', 'popSize', 'timeOutMS']) {
+      checkOpt(vName, val => !Number.isInteger(val), `${vName} MUST be an Int`);
+    }
+
+    checkOpt('popSize', popSize => popSize < MIN_POPSIZE, `popSize MUST be at least ${MIN_POPSIZE}`);
+
+    checkOpt('pMutate', pMutate => pMutate > 1, 'pMutate is a probability so it MUST be BETWEEN 0 AND 1');
+
     if (opts.nElite !== undefined && opts.popSize !== undefined && opts.nElite > opts.popSize) {
-      throw new Error('`nElite` CANNOT be greater than `popSize`');
+      throw new Error('nElite CANNOT be greater than popSize');
     }
-    if (opts.nElite !== undefined && opts.nElite < 0) {
-      throw new Error('`nElite` CANNOT be negative');
-    }
-    if (opts.nTrack !== undefined && opts.nTrack < 0) {
-      throw new Error('`nTrack` CANNOT be negative');
-    }
-    if (opts.nTrack !== undefined && opts.nTrack < 2) {
-      throw new Error('`nTrack` MUSTBE greater than or equal to 2');
-    }
-    if (opts.nElite !== undefined && !Number.isInteger(opts.nElite) && opts.nElite > 1) {
-      throw new Error('`nElite` must be EITHER an int specifying the number of elite candidate OR a ratio, a float between 0 and 1');
-    }
-    if (opts.minNGeneMut !== undefined && opts.minNGeneMut > nGenes) {
-      throw new Error('`minNGeneMut` CANNOT be greater than `nGenes`');
-    }
-    if (opts.minNGeneMut !== undefined && opts.minNGeneMut < 1) {
-      throw new Error('`minNGeneMut` must be at least 1, you have to mutate SOMETHING');
-    }
+    checkOpt('nElite', nElite => !Number.isInteger(nElite) && nElite > 1, 'nElite must be EITHER an Int specifying the number of elite candidate OR a ratio, a Float between 0 and 1');
+    checkOpt('nElite', nElite => Number.isInteger(nElite) && nElite < MIN_NELITE, `nElite MUST be a ratio 0..1 OR an in greater than or equal to ${MIN_NELITE}`);
+
+    checkOpt('nTrack', nTrack => nTrack < MIN_NTRACK, `nTrack MUSTBE greater than or equal to ${MIN_NTRACK}`);
+
+    checkOpt('minNGeneMut', minNGeneMut => minNGeneMut > nGenes, 'minNGeneMut CANNOT be greater than nGenes');
+    checkOpt('minNGeneMut', minNGeneMut => minNGeneMut < 1, 'minNGeneMut MUST be at least 1, you have to mutate SOMETHING');
     if (opts.minNGeneMut !== undefined && opts.maxNGeneMut !== undefined && opts.minNGeneMut > opts.maxNGeneMut) {
-      throw new Error('`minNGeneMut` cannot be greater than `maxNGeneMut`');
+      throw new Error('minNGeneMut CANNOT be greater than maxNGeneMut');
     }
-    if (opts.minRandVal !== undefined && opts.minRandVal < 0 && dtype.startsWith('u')) {
-      throw new Error('`minRandVal` cannot be negative when using unsigned integers (uint array)');
-    }
+    checkOpt('maxNGeneMut', maxNGeneMut => maxNGeneMut > nGenes, 'maxNGeneMut CANNOT be greater than nGenes');
+
+    checkOpt('minRandVal', minRandVal => minRandVal < 0 && dtype.startsWith('u'), 'minRandVal CANNOT be negative when using unsigned integers (UintArray)');
     if (opts.minRandVal !== undefined && opts.maxRandVal !== undefined && opts.minRandVal > opts.maxRandVal) {
-      throw new Error('`minRandVal` cannot be greater than `maxRandVal`');
-    }
-    if (opts.maxNGeneMut !== undefined && opts.maxNGeneMut > nGenes) {
-      throw new Error('`maxNGeneMut` cannot be greater than `nGenes`');
-    }
-    if (opts.pMutate !== undefined && opts.pMutate > 1) {
-      throw new Error('`pMutate` is a probability so it must be BETWEEN 0 AND 1');
+      throw new Error('minRandVal CANNOT be greater than `maxRandVal`');
     }
 
     const DERIVED_OPTS = {
       f,
       dtype,
-      maxNGeneMut: Math.max(1, Math.floor(Math.log2(nGenes))),
+      maxNGeneMut: (opts.minNGeneMut === undefined ? DEFAULTS.minNGeneMut : opts.minNGeneMut) + Math.floor(Math.log2(nGenes) / 2),
       nBits: parseInt(bitRegex.exec(dtype)[0]),
       nGenes,
     };
+
+    for (const k of Object.keys(opts)) {
+      if (DEFAULTS[k] === undefined && DERIVED_OPTS[k] === undefined) {
+        throw new Error(`unrecognized option ${k}`);
+      }
+    }
 
     Object.assign(
       this,
@@ -146,6 +158,7 @@ class GeneticAlgorithm extends EventEmitter {
     }
   }
 
+  
   * search() {
     const bufSize = this.popSize * this.nGenes * (this.nBits / 8);
     const typedArr = getConst(this.dtype);
@@ -177,6 +190,7 @@ class GeneticAlgorithm extends EventEmitter {
 
     const startTm = Date.now();
 
+    // computed parameter info
     this.emit('start', startTm, {
       dtype: this.dtype,
       nBits: this.nBits,
@@ -187,28 +201,31 @@ class GeneticAlgorithm extends EventEmitter {
       minRandVal: this.minRandVal,
       nElite: this.nElite,
       nGenes: this.nGenes,
-      nRounds: this.nRounds,
       nTrack: this.nTrack,
       pMutate: this.pMutate,
       popSize: this.popSize,
       timeOutMS: this.timeOutMS,
+      nRounds: this.nRounds,
     });
 
     let rIdx = 0;
 
     while (true) {
-      if (rIdx >= this.nRounds) {
-        this.emit('rounds');
-        break;
-      } else if ((Date.now() - startTm) >= this.timeOutMS) {
+      const time = Date.now();
+      const timeTaken = time - startTm; 
+      // stop conditions
+      if (timeTaken >= this.timeOutMS) {
         this.emit('timeout');
         break;
       } else if (maxScores !== null && rIdx > maxScores.length && maxScores.subarray(1).map((f, idx) => f - maxScores[idx]).reduce((diff1, diff2) => diff1 + diff2) < this.minImprove) { 
         this.emit('stuck');
         break;
+      } else if (rIdx >= this.nRounds) { 
+        console.log(rIdx, this.nRounds);
+        this.emit('rounds');
+        break;
       } else {
-        this.emit('round');
-        rIdx++;
+        this.emit('round', rIdx = rIdx + 1);
       }
 
       this.emit('score');
@@ -220,20 +237,37 @@ class GeneticAlgorithm extends EventEmitter {
 
       const newPop = makePop();
 
-      let improve;
-      let bestF;
+      let improvement;
+      let bestFitness;
 
+      // when minImprove is null, the plateau detection is disabled
       if (this.minImprove !== null) {
         // shift left
         maxScores.set(maxScores.subarray(1));
-        bestF = scores.filter(s => !Object.is(NaN, s) && !Object.is(Infinity, s)).reduce((s1, s2) => Math.max(s1, s2), 0);
-        maxScores[maxScores.length - 1] = bestF;
-        improve = bestF - maxScores[maxScores.length - 2];
+
+        const safeScores = [];
+
+        for (let i = 0; i < scores.length; i++) {
+          if (Object.is(NaN, scores[i])) {
+            console.warn('[WARN] fitness function returned NaN');
+          } else if (Object.is(Infinity, scores[i])) {
+            console.warn('[WARN] fitness function returned Infinity');
+          } else {
+            safeScores.push(scores[i]);
+          }
+        }
+
+        // keep track of last nTrack BEST scores
+        bestFitness = safeScores.reduce((s1, s2) => Math.max(s1, s2), 0);
+        maxScores[maxScores.length - 1] = bestFitness;
+
+        // improvement is the difference between last best score and current best score
+        improvement = bestFitness - maxScores[maxScores.length - 2];
       }
 
       candIdxs = candIdxs.sort((idx1, idx2) => (scores[idx1] > scores[idx2] ? -1 : 1));
 
-      this.emit('best', pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes), bestF, improve);
+      this.emit('best', pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes), bestFitness, improvement);
 
       for (let ptr = 0; ptr < this.popSize; ptr++) {
         const cIdx = candIdxs[ptr];
@@ -249,11 +283,11 @@ class GeneticAlgorithm extends EventEmitter {
       // to do that, make the probability a funciton of the position in the array
       //
       // You also want to increase the p of mutation as you approach the end of running the algorithm
-      // meaning as rIdx approaches nRounds, pMutate approaches 0.8 (or something similar).
-      //
+      // meaning as timetaken approaches timeOutMS, pMutate approaches 1.0.
+
       for (let cIdx = this.nElite * this.nGenes; cIdx < pop.length; cIdx += this.nGenes) {
 
-        const pMutate = this.pMutate === null ? (1 - ((cIdx / this.nGenes) / this.popSize)) * (rIdx / this.nRounds) : this.pMutate;
+        const pMutate = this.pMutate === null ? (1 - ((cIdx / this.nGenes) / this.popSize)) * (timeTaken / this.timeOutMS) : this.pMutate;
 
         if (Math.random() < pMutate) {
 
@@ -267,6 +301,7 @@ class GeneticAlgorithm extends EventEmitter {
 
           for (let i = 0; i < nMutations; i++) {
             let geneIdx;
+            // choose unique
             do { geneIdx = Math.floor(Math.random() * this.nGenes); } while (mutated.has(geneIdx));
             mutated.add(geneIdx);
             pop[cIdx + geneIdx] = this.minRandVal + Math.floor(Math.random() * (this.maxRandVal - this.minRandVal));
@@ -275,9 +310,11 @@ class GeneticAlgorithm extends EventEmitter {
           this.emit('crossover', 1 - pMutate);
           let pIdx1;
           let pIdx2;
+
           // 1/10 of the time, choose elites, this way, you can maintain a small population of elites
           // and still make rapid progress
-          if (this.nElite > 5 && Math.random() < 0.1) {
+          if (Math.random() < 0.1) {
+            // choose unique
             do { pIdx1 = Math.floor(Math.random() * this.nElite); } while (pIdx1 === cIdx);
             do { pIdx2 = Math.floor(Math.random() * this.nElite); } while (pIdx2 === cIdx || pIdx2 === pIdx1);
           } else {
@@ -285,9 +322,12 @@ class GeneticAlgorithm extends EventEmitter {
             do { pIdx1 = Math.floor(Math.random() * maxIdx); } while (pIdx1 === cIdx);
             do { pIdx2 = Math.floor(Math.random() * maxIdx); } while (pIdx2 === cIdx || pIdx2 === pIdx1);
           }
-          const coPoint = Math.floor(Math.random() * (this.nGenes + 1));
-          pop.set(pop.subarray(pIdx1 * this.nGenes, pIdx1 * this.nGenes + coPoint), cIdx);
-          pop.set(pop.subarray(pIdx2 * this.nGenes + coPoint, (pIdx2 + 1) * this.nGenes), cIdx + coPoint);
+          // avoid positional bias
+          const offset1 = pIdx1 * this.nGenes;
+          const offset2 = pIdx2 * this.nGenes;
+          for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
+            pop[cIdx + gIdx] = pop[(Math.random() < 0.5 ? offset1 : offset2) + gIdx]; 
+          }
         }
       }
     }
