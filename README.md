@@ -1,4 +1,4 @@
-# Genetic Algorithm (ALPHA STAGE)
+# Genetic Algorithm
 
 - use when search space is too large to use brute-force
   - e.g. solving equations, automating the process of design and solving
