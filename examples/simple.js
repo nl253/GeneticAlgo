@@ -6,7 +6,7 @@ const SEC = 1000;
 const f = xs => xs.reduce((x, y) => x + y, 0);
 
 const dtype = 'u32'; // search space of real numbers (floats) is more challanging (try 'f32')
-const nGenes = 1500; // the more genes, the more difficult the task
+const nGenes = 500; // the more genes, the more difficult the task
 
 const opts = { timeOutMS: 15 * SEC };
 

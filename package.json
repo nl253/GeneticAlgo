@@ -1,5 +1,6 @@
 {
   "author": "Norbert Logiewa <norbertlogiewa96@gmail.com>",
+  "private": true,
   "bugs": {
     "email": "norbertlogiewa96@gmail.com",
     "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
@@ -40,7 +41,6 @@
   "license": "MIT",
   "main": "index.js",
   "name": "genetic-algo",
-  "private": false,
   "readme": "README.md",
   "repository": {
     "type": "git",

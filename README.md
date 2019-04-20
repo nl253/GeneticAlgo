@@ -9,6 +9,8 @@
 - adaptive probability of mutation
 - elitism (preserves top candidates)
 - detects when the algorithm is stuck in a local minimum and returns
+- allows for profiling and debugging (see EventEmitter API)
+- tries to be efficient
 
 See API below.
 
@@ -63,6 +65,7 @@ const SEC = 1000;
 const opts = {
 
   // stop condition 
+  // (if you find that the algorithm gets stuck too quickly, increase it)
   timeOutMS: 30 * SEC, 
 
   // stop condition
@@ -80,6 +83,12 @@ const opts = {
   // 0.2 is 20%, 10 is 10
   // (if you find that the algorithm gets stuck too quickly, decrease it)
   nElite: 0.2,         
+
+  // probability of choosing elites for selection 
+  // this way you can have a small population of elites but sample frequently 
+  // e.g. when nElite is small and pElite is high
+  // (if you find that the algorithm gets stuck too quickly, decrease it)
+  pElite: 0.2,         
 
   // when mutating, target at least 1 gene
   minNGeneMut: 1,      
@@ -137,29 +146,40 @@ which can be used for profiling.
 
 **NOTE** data emitted is in sub-bullets.
 
-- `"start"` when `.search()` is called
+**Emitted Once** <br>
+
+1. `"init"` right after `.search()` is called, just *before* initialisation
+2. `"generate"` when generating initial population.
+3. `"randomize"` when setting random genes in the initial population.
+4. `"start"` after `.search()` and all initialisation is complete, before the 1st round
   - **Int** `startTime` in milliseconds
-  - **Object** `opts`
-- `"timeout"` when `timeOutMS` limit reached.
-- `"rounds"` when `nRounds` limit reached.
-- `"stuck"` when stuck in a local minimum.
-- `"end"` when finished.
+  - **Object** `opts` the algorithm is run with (you can use it to see if you configured it properly)
+
+**Emitted on Stop Condition Met** <br>
+
+1. `"timeout"` when `timeOutMS` limit is reached.
+2. `"stuck"` when stuck in a local minimum.
+3. `"rounds"` when `nRounds` limit reached.
+4. `"end"` when finished.
   - **Int** `roundNumber`
   - **Date** `dateFinished`
-  - **Int** `msTook`
-- `"round"` on every round start (**not** the same as `"rounds"`).
-- `"mutate"` on choosing mutation as opposed to crossover.
-  - **Int** `nMutations` number of genes to mutate.
-  - **Float** `pMutate` computed probability of mutation (this makes sense when `pMutate = null` which makes it adaptive).
-- `"crossover"` on choosing crossover as opposed to mutation.
-  - **Float** `pCrossover` computed probability of crossover (this makes sense when `pMutate = null` which makes it adaptive).
-- `"best"` after all candidates have been evaluated and the best candidate is selected.
-  - **TypedArray** `bestCandidate`
+  - **Int** `msTaken`
+
+**Emitted Every Round** <br>
+
+1. `"round"` on every round start (**not** the same as `"rounds"`).
+2. `"best"` after all candidates have been evaluated and the best candidate is selected.
+  - **Int** `indexOfBestCandidate`
   - **Float** `scoreOfBestCandidate`
   - **Float** `improvementSinceLastRound`
-- `"generate"` when generating initial population.
-- `"randomize"` when setting random genes in the initial population.
-- `"score"` when scoring candidate solutions.
+3. `"mutate"` on choosing mutation as opposed to crossover.
+  - **Int** `nMutations` number of genes to mutate.
+  - **Float** `pMutate` computed probability of mutation (this makes sense when `pMutate = null` which makes it adaptive, you can use it to see how it grows with time).
+4. `"crossover"` on choosing crossover as opposed to mutation.
+  - **Float** `pCrossover` computed probability of crossover (this makes sense when `pMutate = null` which makes it adaptive, it's basically `1 - pMuate`).
+  - **Int** `parent1Idx`
+  - **Int** `parent2Idx`
+  - **Bool** `didChooseElite`
 
 Example of extracting data from signals:
 
