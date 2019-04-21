@@ -32,7 +32,7 @@ const GA = require('genetic-algo')
 const fitnessFunction = arr => arr.reduce((x, y) => x + y, 0)
 
 // you may also supply an object with options  see below DEFAULT OPTS)
-const ga = new GA(fitnessFunction, 12 /* nGenes */, 'u32' /* dtype */)
+const ga = new GA(fitnessFunction, 1000 /* nGenes */, 'u32' /* dtype */)
 
 // Array<TypedArray>
 const bestCandidates = Array.from(ga.search() /* generator */)
