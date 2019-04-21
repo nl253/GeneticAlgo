@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+/**
+ * This is a trivial example where the task is to maximise the value of each gene.
+ */
 const GA = require('..');
 const SEC = 1000;
 
