@@ -20,11 +20,11 @@ const DEFAULTS = {
   minImp: 1E-6,
   minNGeneMut: 1,
   nElite: 0.2,
-  nTrack: 100,
-  pMutate: null,
-  pElite: 0.1,
-  popSize: 300,
   nRounds: 1E6,
+  nTrack: 100,
+  pElite: 0.1,
+  pMutate: null,
+  popSize: 300,
   timeOutMS: 30 * SEC,
 };
 
@@ -38,7 +38,7 @@ const DEFAULTS = {
 function getConst(dtype) {
   if (dtype.toLowerCase() !== dtype) {
     return getConst(dtype.toLowerCase());
-  } 
+  }
   const nBits = bitRegex.exec(dtype)[0];
   if (dtype.startsWith('f')) {
     return eval(`Float${nBits}Array`);
@@ -139,7 +139,7 @@ class GeneticAlgorithm extends EventEmitter {
 
     if (this.nElite < 1) {
       this.nElite = Math.floor(this.nElite * this.popSize);
-    } 
+    }
 
     if (this.maxRandVal === undefined) {
       if (dtype.startsWith('f')) {
@@ -168,10 +168,10 @@ class GeneticAlgorithm extends EventEmitter {
     // this is a metric of how close you are to the solution
     const maxScores = new Float32Array(new ArrayBuffer(4 * this.nTrack));
 
-    // fitness score for every corresponding candidate 
+    // fitness score for every corresponding candidate
     const scores = new Float32Array(new ArrayBuffer(this.popSize * 4));
 
-    // indexes of candidates 
+    // indexes of candidates
     const candIdxs = new Uint32Array(new ArrayBuffer(this.popSize * 4)).map((_, idx) => idx);
 
     this.emit('generate');
@@ -210,19 +210,19 @@ class GeneticAlgorithm extends EventEmitter {
       timeOutMS: this.timeOutMS,
     });
 
-    let timeTaken; 
+    let timeTaken;
 
     while (true) {
-      timeTaken = Date.now() - startTm; 
+      timeTaken = Date.now() - startTm;
 
       // stop conditions
       if (timeTaken >= this.timeOutMS) {
         this.emit('timeout');
         break;
-      } else if (rIdx > maxScores.length && maxScores.subarray(1).map((f, idx) => f - maxScores[idx]).reduce((diff1, diff2) => diff1 + diff2, 0) < this.minImp) { 
+      } else if (rIdx > maxScores.length && maxScores.subarray(1).map((f, idx) => f - maxScores[idx]).reduce((diff1, diff2) => diff1 + diff2, 0) < this.minImp) {
         this.emit('stuck');
         break;
-      } else if (rIdx >= this.nRounds) { 
+      } else if (rIdx >= this.nRounds) {
         console.log(rIdx, this.nRounds);
         this.emit('rounds');
         break;
@@ -236,7 +236,7 @@ class GeneticAlgorithm extends EventEmitter {
 
       for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
         scores[cIdx] = this.f(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes));
-        // protect against fitness function returnin NaN or Infinity
+        // protect against fitness function returning NaN or Infinity
         if (Object.is(NaN, scores[cIdx])) {
           console.warn('[WARN] fitness function returned NaN');
           scores[cIdx] = -Infinity;
@@ -246,40 +246,38 @@ class GeneticAlgorithm extends EventEmitter {
       }
 
       // keep track of last nTrack BEST scores
-      maxScores[maxScores.length - 1] = 
+      maxScores[maxScores.length - 1] =
         scores.reduce((s1, s2) => Math.max(s1, s2), 0); // best fitness
 
       // re-sort candidates based on fitness (1st is most fit, last is least fit)
       candIdxs.sort((cIdx1, cIdx2) => scores[cIdx1] > scores[cIdx2] ? -1 : 1);
 
-      this.emit('best', 
-        // index of the fittest candidate 
-        candIdxs[0], 
+      this.emit('best',
         // fitness of the fittest candidate
-        maxScores[maxScores.length - 1], 
+        maxScores[maxScores.length - 1],
         // improvement (difference between last best score and current fittest candidate score)
-        maxScores[maxScores.length - 1] - maxScores[maxScores.length - 2], 
-      );
+        maxScores[maxScores.length - 1] - maxScores[maxScores.length - 2],
+        // index of the fittest candidate
+        candIdxs[0]);
 
-      // go over non-elite units (elitism - leave best units unaltered)
-      //
-      // NOTE: order of candIdxs is as follows: [best, second best, third best, ..., worst]
+      /* go over non-elite units (elitism - leave best units unaltered)
+       *
+       * NOTE: order of candIdxs is as follows: [best, second best, third best, ..., worst] */
 
       for (let ptr = this.nElite; ptr < this.popSize; ptr++) {
 
         const cIdx = candIdxs[ptr];
         const offset = cIdx * this.nGenes;
 
-        // You want to apply mutation to the fittest BUT crossover to the least fit.
-        // To do that, make the probability a function of the position in the array.
-        //
-        // You also want to increase the p of mutation as you approach the end of running the algorithm
-        // meaning as timeTaken approaches timeOutMS, pMutate approaches 1.0.
+        /* You want to apply mutation to the fittest BUT crossover to the least fit.
+         * To do that, make the probability a function of the position in the array.
+         *
+         * You also want to increase the p of mutation as you approach the end of running the algorithm
+         * meaning as timeTaken approaches timeOutMS, pMutate approaches 1.0. */
 
         const pMutate = this.pMutate === null ? (1 - ((ptr - this.nElite) / (this.popSize - this.nElite))) * (timeTaken / this.timeOutMS) : this.pMutate;
 
         if (Math.random() < pMutate) {
-
           // UNIQUE mutations (on different genes)
           const nMutations = this.minNGeneMut + Math.floor(Math.random() * (this.maxNGeneMut - this.minNGeneMut));
 
@@ -296,8 +294,8 @@ class GeneticAlgorithm extends EventEmitter {
             pop[offset + geneIdx] = this.minRandVal + Math.floor(Math.random() * (this.maxRandVal - this.minRandVal));
           }
         } else {
-          let pIdx1; // parent 1 
-          let pIdx2; // parent 2 
+          let pIdx1; // parent 1
+          let pIdx2; // parent 2
 
           // choose from elite (this way, you can maintain a small population of elites and still make rapid progress.)
           if (Math.random() < this.pElite) {
@@ -311,18 +309,18 @@ class GeneticAlgorithm extends EventEmitter {
             this.emit('crossover', 1 - pMutate, pIdx1, pIdx2, false);
           }
 
-          // avoid positional bias 
+          // avoid positional bias
           // don't use cross-over point, otherwise genes CLOSE to each other will be more likely to be inherited
           const offset1 = pIdx1 * this.nGenes;
           const offset2 = pIdx2 * this.nGenes;
           for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
-            pop[offset + gIdx] = pop[(Math.random() < 0.5 ? offset1 : offset2) + gIdx]; 
+            pop[offset + gIdx] = pop[(Math.random() < 0.5 ? offset1 : offset2) + gIdx];
           }
         }
       }
     }
 
-    this.emit('end', rIdx, new Date(), timeTaken /* milliseconds */);
+    this.emit('end', rIdx, timeTaken /* milliseconds */, new Date());
 
     for (let ptr = 0; ptr < this.popSize; ptr++) {
       const cIdx = candIdxs[ptr];

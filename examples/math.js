@@ -22,10 +22,10 @@ const dtype = 'u8';
 const nGenes = 6;
 
 const opts = {
+  maxNGeneMut: 2,
   nTrack: 200,
   popSize: 1500,
   timeOutMS: 12 * SEC,
-  maxNGeneMut: 2,
 };
 
 const ga = new GA(f, nGenes, dtype, opts);

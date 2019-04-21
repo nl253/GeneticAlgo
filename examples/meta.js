@@ -18,12 +18,12 @@ function decodeCand(cand) {
   const maxNGeneMut = Math.min(300, minNGeneMut + cand[1]);
   const popSize = 80 + cand[2];
   return {
-    popSize,
-    minNGeneMut,
     maxNGeneMut,
+    minNGeneMut,
     nElite: 2 + (cand[3] % popSize),
-    pMutate: cand[4] / 2 ** 8,
     nTrack: 10 + cand[6],
+    pMutate: cand[4] / 2 ** 8,
+    popSize,
     timeOutMS: 12 * SEC,
   };
 }

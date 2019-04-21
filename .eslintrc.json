@@ -160,7 +160,7 @@
       300
     ],
     "max-statements-per-line": 1,
-    "multiline-comment-style": 1,
+    "multiline-comment-style": 0,
     "multiline-ternary": 1,
     "new-parens": 2,
     "no-alert": 1,

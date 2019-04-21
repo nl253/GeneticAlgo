@@ -1,6 +1,5 @@
 {
   "author": "Norbert Logiewa <norbertlogiewa96@gmail.com>",
-  "private": true,
   "bugs": {
     "email": "norbertlogiewa96@gmail.com",
     "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
@@ -19,6 +18,9 @@
     "eslint-plugin-react": "^7.12.4",
     "eslint-plugin-security": "^1.4.0"
   },
+  "directories": {
+    "example": "examples"
+  },
   "engines": {
     "node": ">=10"
   },
@@ -28,23 +30,31 @@
     "examples/math.js",
     "examples/meta.js",
     "examples/parallel.js",
-    "examples/dummy.js"
+    "examples/simple.js"
   ],
   "homepage": "https://github.com/nl253/GeneticAlgo-JS",
   "keywords": [
-    "genetic",
     "algorithm",
+    "evolutionary-programming",
+    "genetic",
     "genetic-algorithm",
-    "search",
+    "heuristic",
+    "heuristic-search",
+    "natural-computation",
+    "population-search",
+    "search-algorithm",
     "global-search"
   ],
   "license": "MIT",
   "main": "index.js",
   "name": "genetic-algo",
-  "readme": "README.md",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
   },
-  "version": "1.0.0"
+  "scripts": {
+    "test": "jest"
+  },
+  "version": "1.1.0-alpha"
 }

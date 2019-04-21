@@ -1,6 +1,6 @@
 #!/usr/bin/node
 /**
- * This example shows that many GeneticAlgorightms can be run in parallel.
+ * This example shows that many GeneticAlgorithms can be run in parallel.
  */
 const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
@@ -12,9 +12,9 @@ if (cluster.isMaster) {
     cluster.fork();
   }
   process.exit(0);
-} 
+}
 
-// this is the worker code 
+// this is the worker code
 const GA = require('..');
 const SEC = 1000;
 
@@ -22,21 +22,20 @@ const f = xs => xs.reduce((x, y) => x + y, 0);
 const dtype = 'u32';
 const nGenes = 500;
 
-// randomness will ensure different config for every child
+// randomness will ensure different config for every worker
 const opts = {
   maxNGeneMut: 4 + Math.floor(Math.random() * 5),
   minNGeneMut: 1 + Math.floor(Math.random() * 3),
   nElite: 0.01 + (Math.random() * 0.4),
-  popSize: 50 + Math.floor(Math.random() * 1500),
   pElite: 0.1 + (Math.random() * 0.4),
+  popSize: 50 + Math.floor(Math.random() * 1500),
   timeOutMS: 45 * SEC,
 };
 
 const ga = new GA(f, nGenes, dtype, opts);
 
-// use the EventEmitter API for getting profiling
+// use the EventEmitter API for profiling
 ga.on('start', (time, opts) => console.log(`[START] at ${new Date(time).toTimeString()} with opts`, opts));
-// ga.on('best', (_bestCandIdx, fitness, _) => console.log((fitness / (100 * 2 ** 32)).toPrecision(4)));
 ga.on('stuck', () => console.log(`[END] stuck`));
 ga.on('timeout', () => console.log(`[END] timeout`));
 ga.on('end', (nr, d, ms) => console.log(`[END] after round #${nr} (took ${ms / SEC}sec)`));
@@ -46,4 +45,4 @@ ga.on('end', (nr, d, ms) => console.log(`[END] after round #${nr} (took ${ms / S
 const fittest = ga.search().next().value;
 const bestPossible = 2**32 * nGenes;
 const bestActual = f(fittest);
-console.log(bestActual / bestPossible); 
+console.log('score', bestActual / bestPossible, '/ 1.0');
