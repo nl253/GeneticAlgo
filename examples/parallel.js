@@ -35,10 +35,10 @@ const opts = {
 const ga = new GA(f, nGenes, dtype, opts);
 
 // use the EventEmitter API for profiling
-ga.on('start', (time, opts) => console.log(`[START] at ${new Date(time).toTimeString()} with opts`, opts));
+ga.on('start', (timeMS, opts) => console.log(`[START] at ${new Date(timeMS).toTimeString()} with opts`, opts));
 ga.on('stuck', () => console.log(`[END] stuck`));
 ga.on('timeout', () => console.log(`[END] timeout`));
-ga.on('end', (nr, d, ms) => console.log(`[END] after round #${nr} (took ${ms / SEC}sec)`));
+ga.on('end', (rIdx, _date, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
 
 /* ga.search() will create a generator that iterates over the best population
  * if you want the best candidate, just request the very first: */

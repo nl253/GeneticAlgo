@@ -6,6 +6,7 @@
  * - truncation selection
  * - timeout finish
  * - nRound finish
+ * - adaptive pMutate
  */
 const { EventEmitter } = require('events');
 
@@ -253,12 +254,22 @@ class GeneticAlgorithm extends EventEmitter {
       candIdxs.sort((cIdx1, cIdx2) => scores[cIdx1] > scores[cIdx2] ? -1 : 1);
 
       this.emit('best',
-        // fitness of the fittest candidate
-        maxScores[maxScores.length - 1],
+        // fittest candidate
+        pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes),
+        // fitness of best candidate
+        scores[candIdxs[0]],
         // improvement (difference between last best score and current fittest candidate score)
         maxScores[maxScores.length - 1] - maxScores[maxScores.length - 2],
-        // index of the fittest candidate
-        candIdxs[0]);
+      );
+
+      // v2
+      // this.emit('best',
+        // // fitness of the fittest candidate
+        // maxScores[maxScores.length - 1],
+        // // improvement (difference between last best score and current fittest candidate score)
+        // maxScores[maxScores.length - 1] - maxScores[maxScores.length - 2],
+        // // index of the fittest candidate
+        // candIdxs[0]);
 
       /* go over non-elite units (elitism - leave best units unaltered)
        *
@@ -320,7 +331,9 @@ class GeneticAlgorithm extends EventEmitter {
       }
     }
 
-    this.emit('end', rIdx, timeTaken /* milliseconds */, new Date());
+    // v2
+    // this.emit('end', rIdx, timeTaken /* milliseconds */, new Date());
+    this.emit('end', rIdx, new Date(), timeTaken /* milliseconds */);
 
     for (let ptr = 0; ptr < this.popSize; ptr++) {
       const cIdx = candIdxs[ptr];

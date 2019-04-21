@@ -31,9 +31,9 @@ const opts = {
 const ga = new GA(f, nGenes, dtype, opts);
 
 ga.on('stuck', () => console.log(`[END] stuck`));
-// ga.on('mutate', (n, p) => console.log(`mutating ${n} genes (pMutate = ${p})`));
+// ga.on('mutate', (nMutations, pMutate) => console.log(`mutating ${nMutations} genes (pMutate = ${pMutate})`));
 ga.on('timeout', () => console.log(`[END] timeout`));
-ga.on('end', (nr, d, t) => console.log(`[END] after round #${nr} (took ${t / SEC}sec)`));
+ga.on('end', (rIdx, _date, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
 
 console.log('TASK: find x1, x2, x3, x4, x5, x6 such that log2(x1) * x2^x3 / x4 + x5^log2(x6) = 0');
 

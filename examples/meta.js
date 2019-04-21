@@ -38,7 +38,7 @@ function fitness(cand) {
   maximizer.on('start', (time, me) => console.log('sub-algorithm [START]', me));
   maximizer.on('stuck', () => console.log('sub-algorithm [END] stuck'));
   maximizer.on('timeout', () => console.log('sub-algorithm [END] timeout'));
-  maximizer.on('end', (nr, d, ms) => console.log(`sub-algorithm [END] after round #${nr} (took ${ms / SEC}sec)`));
+  maximizer.on('end', (rIdx, _date, ms) => console.log(`sub-algorithm [END] after round #${rIdx} (took ${ms / SEC}sec)`));
   const bestCand = maximizer.search().next().value;
   return f(bestCand);
 }
@@ -47,10 +47,10 @@ const metaParamSetter = new GA(fitness, nGenes, 'u8', opts);
 
 // use the EventEmitter API for getting profiling
 metaParamSetter.on('start', time => console.log(`[START] at ${new Date(time).toTimeString()}`));
-metaParamSetter.on('best', (_, score) => console.log(score));
+metaParamSetter.on('best', (_fittestCand, score) => console.log(score));
 metaParamSetter.on('stuck', () => console.log('[END] stuck'));
 metaParamSetter.on('timeout', () => console.log('[END] timeout'));
-metaParamSetter.on('end', (nr, d, ms) => console.log(`[END] after round #${nr} (took ${ms / SEC}sec)`));
+metaParamSetter.on('end', (rIdx, _date, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
 
 const bestConfigs = metaParamSetter.search();
 
