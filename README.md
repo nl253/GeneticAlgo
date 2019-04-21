@@ -77,6 +77,20 @@ const fitness = xs => {
 Fittest candidates score 0 (distance from the root is 0 meaning root has
 been found), least fit candidates have a negative value.
 
+Output:
+
+```
+log2( 98) *   0^ 61 / 209 +   0^log2( 76) = 0
+log2( 39) *   0^228 / 209 +   0^log2(160) = 0
+log2(100) *   0^ 89 / 202 +   0^log2(151) = 0
+log2(124) *   0^163 / 247 +   0^log2( 76) = 0
+log2( 31) *   0^166 /   9 +   0^log2(166) = 0
+log2(221) *   0^100 / 132 +   0^log2(130) = 0
+log2(  2) *   0^157 / 211 +   0^log2(150) = 0
+log2(  2) *   0^100 / 132 +   0^log2(130) = 0
+... ... ... ... ... ... ... ... ... ...  ... 
+```
+
 ### [OPTIONAL] Decode Function
 
 It sometimes makes sense to have a `decode(cand)` function.
