@@ -181,7 +181,7 @@ const room = [
 // etc.
 ```
 
-then each candidate can be a Uint array.
+then each candidate can be a Uint array `[depIdx, roomIdx, ...]`.
 
 A different approach you could take is devote 2 genes to `room` and let
 the first be the ASCII code of the room (`a`..`z`) and the second room
