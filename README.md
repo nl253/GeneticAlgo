@@ -125,7 +125,7 @@ More examples [here](https://github.com/nl253/GeneticAlgo-JS/tree/master/example
 ## NGenes
 
 This is how many numbers each array will have. Each gene (number)
-corresponds to a dimension in the search space you are exploring. E.g.
+corresponds to a dimension in the search space you are exploring. For example:
 
 <table>
   <tr>
@@ -324,7 +324,7 @@ const opts = {
 }
 ```
 
-E.g.:
+For example:
 
 ```js
 const opts = {
@@ -396,7 +396,8 @@ implementation does both for you automatically.
 
 ### Population
 
-Population is a collection of candidate solutions. E.g. an initial population with `popSize = 5`, `nGenes = 2`, `dtype = 'u8'` will look something like this:
+Population is a collection of candidate solutions. An initial population with
+`popSize = 5`, `nGenes = 2`, `dtype = 'u8'` might look something like this:
 
 ```js
 // gene1 gene2
@@ -484,7 +485,7 @@ Example of extracting data from signals:
 
 ```js
 ga.on('start', timeMS => console.log(`[START] at ${new Date(timeMS).toTimeString()}`))
-ga.on('best', (_bestCand, fitness) => console.log(fitness))
+ga.on('best', (_fittestCand, fitness) => console.log(fitness))
 ga.on('stuck', () => console.log(`[END] stuck`))
 ga.on('timeout', () => console.log(`[END] timeout`))
 ga.on('end', (rIdx, _dateFinished, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`))
@@ -502,6 +503,10 @@ ga.on('end', (rIdx, ms) => console.log(`[END] after round #${rIdx} (took ${ms / 
 -->
 
 More examples [here](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples).
+
+## Performance
+
+The bottleneck is the fitness function.
 
 ## Downsides
 

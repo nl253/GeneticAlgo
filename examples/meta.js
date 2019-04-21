@@ -9,10 +9,6 @@ const MIN = 60 * SEC;
 const opts = { nElite: 5, popSize: 20, timeOutMS: 30 * MIN };
 const nGenes = 7;
 
-/**
- * @param {Uint32Array|Uint16Array|Uint8Array|Float64Array|Float32Array|Int32Array|Int8Array|Int16Array} cand
- * @returns {{popSize: !Number, timeOutMS: !Number, pMutate: !Number, maxNGeneMut: !Number}} opts
- */
 function decodeCand(cand) {
   const minNGeneMut = 1 + cand[0];
   const maxNGeneMut = Math.min(300, minNGeneMut + cand[1]);
@@ -28,13 +24,10 @@ function decodeCand(cand) {
   };
 }
 
-/**
- * @param {Uint32Array|Uint16Array|Uint8Array} cand
- * @returns {!Number} fitness score
- */
-function fitness(cand) {
+function fitnessFunct(cand) {
   const f = c => c.reduce((g1, g2) => g1 + g2, 0);
   const maximizer = new GA(f, 300, 'i32', decodeCand(cand));
+  // [optional] use the EventEmitter API for getting profiling
   maximizer.on('start', (time, me) => console.log('sub-algorithm [START]', me));
   maximizer.on('stuck', () => console.log('sub-algorithm [END] stuck'));
   maximizer.on('timeout', () => console.log('sub-algorithm [END] timeout'));
@@ -43,9 +36,9 @@ function fitness(cand) {
   return f(bestCand);
 }
 
-const metaParamSetter = new GA(fitness, nGenes, 'u8', opts);
+const metaParamSetter = new GA(fitnessFunct, nGenes, 'u8', opts);
 
-// use the EventEmitter API for getting profiling
+// [optional] use the EventEmitter API for getting profiling
 metaParamSetter.on('start', time => console.log(`[START] at ${new Date(time).toTimeString()}`));
 metaParamSetter.on('best', (_fittestCand, score) => console.log(score));
 metaParamSetter.on('stuck', () => console.log('[END] stuck'));

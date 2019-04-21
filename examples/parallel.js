@@ -18,7 +18,7 @@ if (cluster.isMaster) {
 const GA = require('..');
 const SEC = 1000;
 
-const f = xs => xs.reduce((x, y) => x + y, 0);
+const fitnessFunct = xs => xs.reduce((x, y) => x + y, 0);
 const dtype = 'u32';
 const nGenes = 500;
 
@@ -32,9 +32,9 @@ const opts = {
   timeOutMS: 45 * SEC,
 };
 
-const ga = new GA(f, nGenes, dtype, opts);
+const ga = new GA(fitnessFunct, nGenes, dtype, opts);
 
-// use the EventEmitter API for profiling
+// [optional] use the EventEmitter API for profiling
 ga.on('start', (timeMS, opts) => console.log(`[START] at ${new Date(timeMS).toTimeString()} with opts`, opts));
 ga.on('stuck', () => console.log(`[END] stuck`));
 ga.on('timeout', () => console.log(`[END] timeout`));
@@ -44,5 +44,5 @@ ga.on('end', (rIdx, _date, ms) => console.log(`[END] after round #${rIdx} (took 
  * if you want the best candidate, just request the very first: */
 const fittest = ga.search().next().value;
 const bestPossible = 2**32 * nGenes;
-const bestActual = f(fittest);
+const bestActual = fitnessFunct(fittest);
 console.log('score', bestActual / bestPossible, '/ 1.0');
