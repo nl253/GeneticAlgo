@@ -10,7 +10,11 @@ const fitnessFunct = xs => xs.reduce((x, y) => x + y, 0);
 const dtype = 'u32'; // search space of real numbers (floats) is more challenging (try 'f32')
 const nGenes = 500;  // the more genes, the more difficult the task
 
-const opts = { timeOutMS: 18 * SEC, validateFitness: false, emitFittest: false };
+const opts = {
+  timeOutMS: 60 * SEC,
+  validateFitness: false,
+  emitFittest: false,
+};
 
 const ga = new GA(fitnessFunct, nGenes, dtype, opts);
 

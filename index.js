@@ -265,7 +265,7 @@ class GeneticAlgorithm extends EventEmitter {
         for (let i = maxScoreIdx + 2; i < this.nTrack; i++) {
           finiteDiff += maxScores[i] - maxScores[i - 1];
         }
-        // finiteDiff += maxScores[this.nTrack - 1] - maxScores[0];
+        finiteDiff += maxScores[this.nTrack - 1] - maxScores[0];
         if (finiteDiff < this.minImp)  {
           this.emit('stuck');
           break;
