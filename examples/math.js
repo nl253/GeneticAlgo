@@ -23,6 +23,7 @@ const nGenes = 6;
 
 const opts = {
   maxNGeneMut: 2,
+  isMultimodal: true,
   nTrack: 200,
   popSize: 1500,
   timeOutMS: 12 * SEC,

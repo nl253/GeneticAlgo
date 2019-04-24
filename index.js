@@ -12,12 +12,23 @@ const { EventEmitter } = require('events');
 
 const SEC = 1000;
 const bitRegex = /8|16|32|64/;
-const DTYPES = new Set(['f64', 'f32', 'i32', 'i16', 'i8', 'u32', 'u16', 'u8']);
+const TARRAY = {
+  f32: n => new Float32Array(new ArrayBuffer(4 * n)),
+  f64: n => new Float64Array(new ArrayBuffer(8 * n)),
+  i32: n => new Int32Array(new ArrayBuffer(4 * n)),
+  u32: n => new Uint32Array(new ArrayBuffer(4 * n)),
+  i16: n => new Int16Array(new ArrayBuffer(4 * n)),
+  u16: n => new Uint16Array(new ArrayBuffer(4 * n)),
+  i8: n => new Int8Array(new ArrayBuffer(4 * n)),
+  u8: n => new Uint8Array(new ArrayBuffer(4 * n)),
+};
+const DTYPES = new Set(Object.keys(TARRAY));
 const MIN_POPSIZE = 5;
 const MIN_NTRACK = 2;
-// when Int
 const MIN_NELITE = 2;
 const DEFAULTS = {
+  emitFittest: true,
+  isMultimodal: false,
   minImp: 1E-6,
   minNGeneMut: 1,
   nElite: 0.2,
@@ -27,6 +38,7 @@ const DEFAULTS = {
   pMutate: null,
   popSize: 300,
   timeOutMS: 30 * SEC,
+  validateFitness: true,
 };
 
 /**
@@ -160,6 +172,9 @@ class GeneticAlgorithm extends EventEmitter {
         this.minRandVal = 0;
       }
     }
+
+    this.randValUpper = this.maxRandVal - this.minRandVal;
+    this.randMutUpper = this.maxNGeneMut - this.minNGeneMut;
   }
 
   * search() {
@@ -167,35 +182,55 @@ class GeneticAlgorithm extends EventEmitter {
 
     // scores of fittest candidates from last nTrack rounds
     // this is a metric of how close you are to the solution
-    const maxScores = new Float32Array(new ArrayBuffer(4 * this.nTrack));
+    const maxScores = TARRAY.f64(this.nTrack);
 
     // fitness score for every corresponding candidate
-    const scores = new Float32Array(new ArrayBuffer(this.popSize * 4));
+    const scores = TARRAY.f64(this.popSize);
 
     // indexes of candidates
-    const candIdxs = new Uint32Array(new ArrayBuffer(this.popSize * 4)).map((_, idx) => idx);
+    const candIdxs = TARRAY.u32(this.popSize);
+    for (let i = 0; i < this.popSize; i++) {
+      candIdxs[i] = i;
+    }
+
+    // cumulative distance from elite units (for all genes)
+    const distances = TARRAY.f64(this.popSize);
 
     this.emit('generate');
 
-    // make an array for new population
-    const typedArr = getConst(this.dtype);
-    const pop = new typedArr(new ArrayBuffer(this.popSize * this.nGenes * (this.nBits / 8)));
+    // pop is a concatenation of all candidates
+    // each candidate with index `cIdx` is a subarray from (cIdx * nGenes) to ((cIdx + 1) * nGenes)
+    const pop = TARRAY[this.dtype](this.popSize * this.nGenes);
 
     this.emit('randomize');
 
     // initialise to pop to rand values
-    for (let cIdx = 0; cIdx < this.popSize * this.nGenes; cIdx += this.nGenes) {
-      for (let geneIdx = 0; geneIdx < this.nGenes; geneIdx++) {
-        pop[cIdx + geneIdx] = Math.floor(Math.random() * (Math.random() < 0.5 ? this.maxRandVal : this.minRandVal));
+    if (this.dtype.startsWith('u')) {
+      // special treatment for unsigned (minRandVal is 0) to prevent too many zeroes
+      for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+        const offset = cIdx * this.nGenes;
+        for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
+          pop[offset + gIdx] = Math.floor(Math.random() * this.maxRandVal);
+        }
+      }
+    } else {
+      for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+        const offset = cIdx * this.nGenes;
+        for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
+          pop[offset + gIdx] = Math.floor(Math.random() * (Math.random() < 0.5 ? this.maxRandVal : this.minRandVal));
+        }
       }
     }
 
-    let rIdx = 0;
     const startTm = Date.now();
+    let rIdx = 0;
+    let timeTaken;
+    let maxScoreIdxPrev;
 
     // computed parameter info
     this.emit('start', startTm, {
       dtype: this.dtype,
+      isMultimodal: this.isMultimodal,
       maxNGeneMut: this.maxNGeneMut,
       maxRandVal: this.maxRandVal,
       minImp: this.minImp,
@@ -211,8 +246,6 @@ class GeneticAlgorithm extends EventEmitter {
       timeOutMS: this.timeOutMS,
     });
 
-    let timeTaken;
-
     while (true) {
       timeTaken = Date.now() - startTm;
 
@@ -220,47 +253,108 @@ class GeneticAlgorithm extends EventEmitter {
       if (timeTaken >= this.timeOutMS) {
         this.emit('timeout');
         break;
-      } else if (rIdx > maxScores.length && maxScores.subarray(1).map((f, idx) => f - maxScores[idx]).reduce((diff1, diff2) => diff1 + diff2, 0) < this.minImp) {
-        this.emit('stuck');
-        break;
-      } else if (rIdx >= this.nRounds) {
-        console.log(rIdx, this.nRounds);
+      } 
+      
+      const maxScoreIdx = rIdx % this.nTrack;
+
+      if (rIdx > this.nTrack) {
+        let finiteDiff = 0; 
+        for (let i = 1; i < maxScoreIdx; i++) {
+          finiteDiff += maxScores[i] - maxScores[i - 1];
+        }
+        for (let i = maxScoreIdx + 2; i < this.nTrack; i++) {
+          finiteDiff += maxScores[i] - maxScores[i - 1];
+        }
+        // finiteDiff += maxScores[this.nTrack - 1] - maxScores[0];
+        if (finiteDiff < this.minImp)  {
+          this.emit('stuck');
+          break;
+        }
+      } 
+      
+      if (rIdx >= this.nRounds) {
         this.emit('rounds');
         break;
+      } 
+
+      this.emit('round', rIdx = rIdx + 1);
+
+      if (this.validateFitness) {
+        for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+          // unfortunately, for the purpose of evaulating fitness each candidate must be extracted from pop into a subarray
+          scores[cIdx] = this.f(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes));
+          // protect against fitness function returning NaN or Infinity
+          if (Object.is(NaN, scores[cIdx])) {
+            console.warn('[WARN] fitness function returned NaN');
+            scores[cIdx] = -Infinity;
+          } else {
+            scores[cIdx] = Math.min(Number.MAX_VALUE, Math.max(-Number.MAX_VALUE, scores[cIdx]));
+          }
+        }
       } else {
-        this.emit('round', rIdx = rIdx + 1);
-      }
-
-      // shift scores left
-      // [31, 9, 4] => [9, 4, 0]
-      maxScores.set(maxScores.subarray(1));
-
-      for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
-        scores[cIdx] = this.f(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes));
-        // protect against fitness function returning NaN or Infinity
-        if (Object.is(NaN, scores[cIdx])) {
-          console.warn('[WARN] fitness function returned NaN');
-          scores[cIdx] = -Infinity;
-        } else {
-          scores[cIdx] = Math.min(Number.MAX_VALUE, Math.max(-Number.MAX_VALUE, scores[cIdx]));
+        for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+          // unfortunately, for the purpose of evaulating fitness each candidate must be extracted from pop into a subarray
+          scores[cIdx] = this.f(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes))
         }
       }
 
       // keep track of last nTrack BEST scores
-      maxScores[maxScores.length - 1] =
+      maxScores[maxScoreIdx] =
         scores.reduce((s1, s2) => Math.max(s1, s2), 0); // best fitness
 
       // re-sort candidates based on fitness (1st is most fit, last is least fit)
       candIdxs.sort((cIdx1, cIdx2) => scores[cIdx1] > scores[cIdx2] ? -1 : 1);
 
+      // this will slow it down quite a bit but it may give some more diversity to solutions
+      if (this.isMultimodal) {
+        let maxDist = -Infinity;
+        let minDist = Infinity;
+        // for each candidate, measure *cumulative* distance from *all* elites for *all* genes
+        for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+          const offsetCand = cIdx * this.nGenes;
+          let d = 0;
+          for (let eIdx = 0; eIdx < this.nElite; eIdx++) {
+            // when cIdx == eIdx, distance == 0 (see compensation step below)
+            const offsetElite = candIdxs[eIdx] * this.nGenes;
+            // manhattan distance because it's quickest
+            for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
+              d += Math.abs(pop[offsetCand + gIdx] - pop[offsetElite + gIdx]);
+            }
+          }
+          if (d > maxDist) {
+            maxDist = d;
+          } else if (d < minDist) {
+            minDist = d;
+          }
+          // division by 2**nBits necassary otherwise float64 overflows
+          distances[cIdx] = d / 2**this.nBits;
+        }
+        // Elites are at a loss because their distance to itself is 0.
+        // You still wanna keep them because they are good solutions.
+        // To do that, artificially add distance to them and make them seem diverse.
+        // Distance of 0 is replaced with maxDist.
+        for (let cIdx = 0; cIdx < this.nElite; cIdx++) {
+          distances[candIdxs[cIdx]] += maxDist / 2**this.nBits;
+        }
+        // normalize using min-max rule
+        // the further away you are from the fittest, the better
+        for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+          scores[cIdx] *= (distances[cIdx] - minDist) / (maxDist - minDist);
+        }
+        // re-sort after changing fitness
+        candIdxs.sort((cIdx1, cIdx2) => scores[cIdx1] > scores[cIdx2] ? -1 : 1);
+      }
+
       this.emit('best',
         // fittest candidate
-        pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes),
+        this.emitFittest ? pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes) : candIdxs[0],
         // fitness of best candidate
         scores[candIdxs[0]],
         // improvement (difference between last best score and current fittest candidate score)
-        maxScores[maxScores.length - 1] - maxScores[maxScores.length - 2],
+        maxScores[maxScoreIdx] - maxScores[maxScoreIdxPrev],
       );
+
+      maxScoreIdxPrev = maxScoreIdx;
 
       // v2
       // this.emit('best',
@@ -290,7 +384,7 @@ class GeneticAlgorithm extends EventEmitter {
 
         if (Math.random() < pMutate) {
           // UNIQUE mutations (on different genes)
-          const nMutations = this.minNGeneMut + Math.floor(Math.random() * (this.maxNGeneMut - this.minNGeneMut));
+          const nMutations = this.minNGeneMut + Math.floor(Math.random() * this.randMutUpper);
 
           this.emit('mutate', nMutations, pMutate);
 
@@ -302,7 +396,7 @@ class GeneticAlgorithm extends EventEmitter {
             // choose unique
             do { geneIdx = Math.floor(Math.random() * this.nGenes); } while (mutated.has(geneIdx));
             mutated.add(geneIdx);
-            pop[offset + geneIdx] = this.minRandVal + Math.floor(Math.random() * (this.maxRandVal - this.minRandVal));
+            pop[offset + geneIdx] = this.minRandVal + Math.floor(Math.random() * this.randValUpper);
           }
         } else {
           let pIdx1; // parent 1

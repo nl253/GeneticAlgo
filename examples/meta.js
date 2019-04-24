@@ -6,7 +6,12 @@ const GA = require('..');
 
 const SEC = 1000;
 const MIN = 60 * SEC;
-const opts = { nElite: 5, popSize: 20, timeOutMS: 30 * MIN };
+const opts = {
+  nElite: 3,
+  popSize: 20,
+  timeOutMS: 2 * MIN,
+  isMultimodal: true,
+};
 const nGenes = 7;
 
 function decodeCand(cand) {

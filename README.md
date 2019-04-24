@@ -77,7 +77,7 @@ const fitness = xs => {
 Fittest candidates score 0 (distance from the root is 0 meaning root has
 been found), least fit candidates have a negative value.
 
-Output from this fitness function when running [this example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/math.js):
+Output from [this example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/math.js) which uses this fitness function:
 
 ```
 log2( 98) *   0^ 61 / 209 +   0^log2( 76) = 0
