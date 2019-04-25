@@ -18,14 +18,12 @@ const fitnessFunct = xs => {
   }
 };
 
-debugger;
-
 const dtype = 'u8';
 const nGenes = 6;
 
 const opts = {
   maxNGeneMut: 2,
-  isMultimodal: true,
+  // isMultimodal: true,
   nTrack: 200,
   popSize: 1500,
   timeOutMS: 12 * SEC,

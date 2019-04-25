@@ -416,7 +416,7 @@ class GeneticAlgorithm extends EventEmitter {
         // To do that, artificially add distance to them and make them seem diverse.
         // Distance of 0 is replaced with maxDist.
         for (let cIdx = 0; cIdx < this.nElite; cIdx++) {
-          distances[candIdxs[cIdx]] += maxDist / this.nGenes;
+          distances[candIdxs[cIdx]] += maxDist / this.nElite;
         }
         // normalize using min-max rule
         // the further away you are from the fittest, the better

@@ -13,7 +13,6 @@ const nGenes = 500;  // the more genes, the more difficult the task
 const opts = {
   timeOutMS: 60 * SEC,
   validateFitness: false,
-  isMultimodal: true,
   emitFittest: false,
 };
 
