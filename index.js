@@ -528,6 +528,10 @@ class GeneticAlgorithm extends EventEmitter {
   }
 
   [util.inspect.custom]() {
+    return this.toString();
+  }
+
+  toString() {
     return 'GeneticAlgorithm ' + util.inspect(this.opts);
   }
 
