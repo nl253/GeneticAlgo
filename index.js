@@ -8,10 +8,14 @@
  * - nRound finish
  * - adaptive pMutate
  */
+'use strict'
+
+const util = require('util');
 const { EventEmitter } = require('events');
 
 const SEC = 1000;
 const bitRegex = /8|16|32|64/;
+
 const TARRAY = {
   f32: n => new Float32Array(new ArrayBuffer(4 * n)),
   f64: n => new Float64Array(new ArrayBuffer(8 * n)),
@@ -22,6 +26,7 @@ const TARRAY = {
   i8: n => new Int8Array(new ArrayBuffer(4 * n)),
   u8: n => new Uint8Array(new ArrayBuffer(4 * n)),
 };
+
 const DTYPES = new Set(Object.keys(TARRAY));
 const MIN_POPSIZE = 5;
 const MIN_NTRACK = 2;
@@ -29,12 +34,15 @@ const MIN_NELITE = 2;
 const DEFAULTS = {
   emitFittest: true,
   isMultimodal: false,
+  maxNGeneMut: null,
+  maxRandVal: null,
+  minRandVal: null,
   minImp: 1E-6,
   minNGeneMut: 1,
   nElite: 0.2,
   nRounds: 1E6,
   nTrack: 100,
-  pElite: 0.1,
+  pElite: null,
   pMutate: null,
   popSize: 300,
   timeOutMS: 30 * SEC,
@@ -69,75 +77,136 @@ class GeneticAlgorithm extends EventEmitter {
    * @param {!function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} f
    * @param {!Number} nGenes
    * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
-   * @param {{pElite: !Number, maxRandVal: !Number, minRandVal: !Number, nElite: !Number, minImp: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, pMutate: ?Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
+   * @param {{isMultimodal: ?Boolean, pElite: !Number, maxRandVal: !Number, minRandVal: !Number, nElite: !Number, minImp: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, pMutate: ?Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
    */
   constructor(f, nGenes, dtype, opts = {}) {
     super();
 
-    // validation
+    // validation on `f`, `nGenes` and `dtype`
     for (const v of ['f', 'dtype', 'nGenes']) {
       if (eval(v) === undefined) {
         throw new Error(`you MUST set ${v}`);
       }
     }
 
+    if (nGenes.constructor.name !== 'Number' || !Number.isInteger(nGenes)) {
+      throw new Error('nGenes MUST be an Int');
+    }
+
     if (nGenes < 1) {
       throw new Error('nGenes MUST be at least 1');
     }
+
     if (!DTYPES.has(dtype)) {
       throw new Error(`unrecognised dtype "${dtype}", choose from: ${Array.from(DTYPES).join(', ')}`);
     }
 
-    const checkOpt = (v, p, msg) => {
-      if (opts[v] !== undefined && p(opts[v])) {
+    if (f.constructor.name !== 'Function') {
+      throw new Error(`fitness function must be a Function`);
+    }
+
+    this.f = f;
+    this.nGenes = nGenes;
+    this.dtype = dtype;
+    this.nBits = parseInt(bitRegex.exec(dtype)[0]);
+
+    // validation on `opts`
+
+    const assert = (v, p, msg) => {
+      if (opts[v] !== undefined && !p(opts[v])) {
         throw new Error(msg);
       }
     };
 
-    for (const vName of ['pElite', 'nRounds', 'nElite', 'pMutate', 'minNGeneMut', 'maxNGeneMut', 'nTrack', 'popSize', 'timeOutMS', 'minImp']) {
-      checkOpt(vName, val => val < 0, `${vName} CANNOT be negative`);
+    const assNum = vName => {
+      return assert(vName, n => n.constructor.name === 'Number', `${vName} must be a Number`);
+    };
+
+    const assProb = vName => {
+      return assert(vName, p => p >= 0 && p <= 1, `${vName} is a probability so it MUST be BETWEEN 0 AND 1`);
+    };
+
+    const assPos = vName => {
+      return assert(vName, val => val >= 0, `${vName} MUST be positive`);
+    };
+
+    const assInt = vName => {
+      return assert(vName, n => Number.isInteger(n), `${vName} MUST be an integer`);
+    };
+
+    const assFloat = vName => {
+      return assert(vName, n => !Number.isInteger(n), `${vName} MUST be a float`);
+    };
+
+    const assLTE = (vName, n) => {
+      return assert(vName, val => val <= n, `${vName} MUST be less than or equal to ${n}`);
+    };
+
+    const assLE = (vName, n) => {
+      return assert(vName, val => val < n, `${vName} MUST be less than ${n}`);
+    };
+
+    const assGTE = (vName, n) => {
+      return assert(vName, val => val >= n, `${vName} MUST be greater than or equal to ${n}`);
+    };
+
+    const assGT = (vName, n) => {
+      return assert(vName, val => val > n, `${vName} MUST be greater than ${n}`);
+    };
+
+    for (const vName of [
+        'pElite',
+        'nRounds',
+        'nElite',
+        'pMutate',
+        'minNGeneMut',
+        'maxNGeneMut',
+        'nTrack',
+        'popSize',
+        'timeOutMS',
+        'minImp',
+      ]) {
+      assNum(vName);
+      assPos(vName);
     }
 
-    for (const vName of ['nRounds', 'minNGeneMut', 'maxNGeneMut', 'nTrack', 'popSize', 'timeOutMS']) {
-      checkOpt(vName, val => !Number.isInteger(val), `${vName} MUST be an Int`);
+    for (const vName of [
+        'nRounds',
+        'minNGeneMut',
+        'maxNGeneMut',
+        'nTrack',
+        'popSize',
+        'timeOutMS',
+      ]) {
+      assNum(vName);
+      assInt(vName);
     }
 
-    checkOpt('popSize', popSize => popSize < MIN_POPSIZE, `popSize MUST be at least ${MIN_POPSIZE}`);
+    assGTE('popSize', MIN_POPSIZE);
+    assGTE('nTrack', MIN_NTRACK);
 
     for (const vName of ['pMutate', 'pElite']) {
-      checkOpt(vName, v => v > 1, `${vName} is a probability so it MUST be BETWEEN 0 AND 1`);
+      assNum(vName);
+      assProb(vName);
     }
 
     if (opts.nElite !== undefined && opts.popSize !== undefined && opts.nElite > opts.popSize) {
       throw new Error('nElite CANNOT be greater than popSize');
     }
-    checkOpt('nElite', nElite => !Number.isInteger(nElite) && nElite > 1, 'nElite must be EITHER an Int specifying the number of elite candidate OR a ratio, a Float between 0 and 1');
-    checkOpt('nElite', nElite => Number.isInteger(nElite) && nElite < MIN_NELITE, `nElite MUST be a ratio 0..1 OR an in greater than or equal to ${MIN_NELITE}`);
 
-    checkOpt('nTrack', nTrack => nTrack < MIN_NTRACK, `nTrack MUST BE greater than or equal to ${MIN_NTRACK}`);
+    assert('nElite', nElite => Number.isInteger(nElite) || nElite <= 1, 'nElite must be EITHER an Int specifying the number of elite candidate OR a ratio, a Float between 0 and 1');
+    assert('nElite', nElite => !Number.isInteger(nElite) || nElite >= MIN_NELITE, `nElite MUST be a ratio 0..1 OR an in greater than or equal to ${MIN_NELITE}`);
 
-    checkOpt('minNGeneMut', minNGeneMut => minNGeneMut > nGenes, 'minNGeneMut CANNOT be greater than nGenes');
-    checkOpt('minNGeneMut', minNGeneMut => minNGeneMut < 1, 'minNGeneMut MUST be at least 1, you have to mutate SOMETHING');
-    if (opts.minNGeneMut !== undefined && opts.maxNGeneMut !== undefined && opts.minNGeneMut > opts.maxNGeneMut) {
-      throw new Error('minNGeneMut CANNOT be greater than maxNGeneMut');
-    }
-    checkOpt('maxNGeneMut', maxNGeneMut => maxNGeneMut > nGenes, 'maxNGeneMut CANNOT be greater than nGenes');
+    assLTE('minNGeneMut', nGenes);
+    assGTE('minNGeneMut', 1);
 
-    checkOpt('minRandVal', minRandVal => minRandVal < 0 && dtype.startsWith('u'), 'minRandVal CANNOT be negative when using unsigned integers (UintArray)');
+    assert('minRandVal', minRandVal =>  !dtype.startsWith('u') || minRandVal >= 0, 'minRandVal CANNOT be negative when using unsigned integers (UintArray)');
     if (opts.minRandVal !== undefined && opts.maxRandVal !== undefined && opts.minRandVal > opts.maxRandVal) {
       throw new Error('minRandVal CANNOT be greater than `maxRandVal`');
     }
 
-    const DERIVED_OPTS = {
-      f,
-      dtype,
-      maxNGeneMut: (opts.minNGeneMut === undefined ? DEFAULTS.minNGeneMut : opts.minNGeneMut) + Math.floor(Math.log2(nGenes) / 2),
-      nBits: parseInt(bitRegex.exec(dtype)[0]),
-      nGenes,
-    };
-
     for (const k of Object.keys(opts)) {
-      if (DEFAULTS[k] === undefined && DERIVED_OPTS[k] === undefined) {
+      if (DEFAULTS[k] === undefined) {
         throw new Error(`unrecognized option ${k}`);
       }
     }
@@ -145,16 +214,26 @@ class GeneticAlgorithm extends EventEmitter {
     Object.assign(
       this,
       Object.assign(
-        DERIVED_OPTS,
-        Object.assign(
-          Object.assign({}, DEFAULTS),
-          opts)));
+        Object.assign({}, DEFAULTS),
+        opts));
 
+    // resolve ratio
     if (this.nElite < 1) {
       this.nElite = Math.floor(this.nElite * this.popSize);
     }
 
-    if (this.maxRandVal === undefined) {
+    // default to pElite equal to ratio of elites to popSize
+    if (this.pElite === null) {
+      this.pElite = this.nElite / this.popSize;
+    }
+
+    // default to a very small value of maxNGeneMut based on nGenes
+    if (this.maxNGeneMut === null) {
+      this.maxNGeneMut = this.minNGeneMut + Math.floor(Math.log2(nGenes) / 2);
+    }
+
+    // intelligently compute min and max bounds of search space based on `dtype`
+    if (this.maxRandVal === null) {
       if (dtype.startsWith('f')) {
         this.maxRandVal = (3.4 * (10 ** 38) - 1) / 1E4;
       } else if (dtype.startsWith('i')) {
@@ -163,7 +242,7 @@ class GeneticAlgorithm extends EventEmitter {
         this.maxRandVal = 2 ** this.nBits - 1;
       }
     }
-    if (this.minRandVal === undefined) {
+    if (this.minRandVal === null) {
       if (dtype.startsWith('f')) {
         this.minRandVal = (1.2 * (10 ** -38)) / 1E4;
       } else if (dtype.startsWith('i')) {
@@ -173,6 +252,7 @@ class GeneticAlgorithm extends EventEmitter {
       }
     }
 
+    // memoize
     this.randValUpper = this.maxRandVal - this.minRandVal;
     this.randMutUpper = this.maxNGeneMut - this.minNGeneMut;
   }
@@ -181,17 +261,17 @@ class GeneticAlgorithm extends EventEmitter {
     this.emit('init');
 
     // scores of fittest candidates from last nTrack rounds
-    // this is a metric of how close you are to the solution
+    // metric of improvement
     const maxScores = TARRAY.f64(this.nTrack);
+    maxScores[this.nTrack - 1] = Infinity;
 
     // fitness score for every corresponding candidate
     const scores = TARRAY.f64(this.popSize);
 
-    // indexes of candidates
+    // indexes of candidates 
+    // re-sorted on each round as opposed to resorting `pop`
     const candIdxs = TARRAY.u32(this.popSize);
-    for (let i = 0; i < this.popSize; i++) {
-      candIdxs[i] = i;
-    }
+    for (let i = 0; i < this.popSize; i++) candIdxs[i] = i;
 
     // cumulative distance from elite units (for all genes)
     const distances = TARRAY.f64(this.popSize);
@@ -204,7 +284,7 @@ class GeneticAlgorithm extends EventEmitter {
 
     this.emit('randomize');
 
-    // initialise to pop to rand values
+    // initialise pop to rand values
     if (this.dtype.startsWith('u')) {
       // special treatment for unsigned (minRandVal is 0) to prevent too many zeroes
       for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
@@ -228,23 +308,23 @@ class GeneticAlgorithm extends EventEmitter {
     let maxScoreIdxPrev;
 
     // computed parameter info
-    this.emit('start', startTm, {
-      dtype: this.dtype,
-      isMultimodal: this.isMultimodal,
-      maxNGeneMut: this.maxNGeneMut,
-      maxRandVal: this.maxRandVal,
-      minImp: this.minImp,
-      minNGeneMut: this.minNGeneMut,
-      minRandVal: this.minRandVal,
-      nElite: this.nElite,
-      nGenes: this.nGenes,
-      nRounds: this.nRounds,
-      nTrack: this.nTrack,
-      pElite: this.pElite,
-      pMutate: this.pMutate,
-      popSize: this.popSize,
-      timeOutMS: this.timeOutMS,
-    });
+    this.emit('start', startTm, this.opts);
+
+    // bootstrap elite scores
+    for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+      const start = cIdx * this.nGenes;
+      const end = start + this.nGenes;
+      scores[cIdx] = this.f(pop.subarray(start, end));
+      if (Object.is(NaN, scores[cIdx])) {
+        console.warn('[WARN] fitness function returned NaN');
+        scores[cIdx] = -Infinity;
+      } else {
+        scores[cIdx] = Math.min(Number.MAX_VALUE, Math.max(-Number.MAX_VALUE, scores[cIdx]));
+      }
+    }
+
+    // sort candidates based on fitness (1st is most fit, last is least fit)
+    candIdxs.sort((cIdx1, cIdx2) => scores[cIdx1] > scores[cIdx2] ? -1 : 1);
 
     while (true) {
       timeTaken = Date.now() - startTm;
@@ -254,36 +334,40 @@ class GeneticAlgorithm extends EventEmitter {
         this.emit('timeout');
         break;
       } 
-      
+
       const maxScoreIdx = rIdx % this.nTrack;
 
-      if (rIdx > this.nTrack) {
-        let finiteDiff = 0; 
-        for (let i = 1; i < maxScoreIdx; i++) {
-          finiteDiff += maxScores[i] - maxScores[i - 1];
-        }
-        for (let i = maxScoreIdx + 2; i < this.nTrack; i++) {
-          finiteDiff += maxScores[i] - maxScores[i - 1];
-        }
-        finiteDiff += maxScores[this.nTrack - 1] - maxScores[0];
-        if (finiteDiff < this.minImp)  {
-          this.emit('stuck');
-          break;
-        }
-      } 
-      
+      let disDiff = 0; 
+      for (let i = 1; i < maxScoreIdx; i++) {
+        disDiff += maxScores[i] - maxScores[i - 1];
+      }
+      for (let i = maxScoreIdx + 2; i < this.nTrack; i++) {
+        disDiff += maxScores[i] - maxScores[i - 1];
+      }
+      // diff between lst and fst
+      disDiff += maxScores[this.nTrack - 1] - maxScores[0];
+      if (disDiff < this.minImp)  {
+        this.emit('stuck');
+        break;
+      }
+
       if (rIdx >= this.nRounds) {
         this.emit('rounds');
         break;
       } 
 
-      this.emit('round', rIdx = rIdx + 1);
+      this.emit('round', rIdx = rIdx + 1, timeTaken);
 
+      // unfortunately, for the purpose of evaulating fitness each candidate must be extracted from pop into a subarray
+
+      // reuse fitness scores for elites from prev round
+      // protect against fitness function returning NaN or Infinity
       if (this.validateFitness) {
-        for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
-          // unfortunately, for the purpose of evaulating fitness each candidate must be extracted from pop into a subarray
-          scores[cIdx] = this.f(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes));
-          // protect against fitness function returning NaN or Infinity
+        for (let ptr = this.nElite; ptr < this.popSize; ptr++) {
+          const cIdx = candIdxs[ptr];
+          const start = cIdx * this.nGenes;
+          const end = start + this.nGenes;
+          scores[cIdx] = this.f(pop.subarray(start, end));
           if (Object.is(NaN, scores[cIdx])) {
             console.warn('[WARN] fitness function returned NaN');
             scores[cIdx] = -Infinity;
@@ -292,15 +376,11 @@ class GeneticAlgorithm extends EventEmitter {
           }
         }
       } else {
-        for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
-          // unfortunately, for the purpose of evaulating fitness each candidate must be extracted from pop into a subarray
-          scores[cIdx] = this.f(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes))
+        for (let ptr = this.nElite; ptr < this.popSize; ptr++) {
+          const cIdx = candIdxs[ptr];
+          scores[cIdx] = this.f(pop.subarray(cIdx * this.nGenes, (cIdx + 1) * this.nGenes));
         }
       }
-
-      // keep track of last nTrack BEST scores
-      maxScores[maxScoreIdx] =
-        scores.reduce((s1, s2) => Math.max(s1, s2), 0); // best fitness
 
       // re-sort candidates based on fitness (1st is most fit, last is least fit)
       candIdxs.sort((cIdx1, cIdx2) => scores[cIdx1] > scores[cIdx2] ? -1 : 1);
@@ -329,25 +409,36 @@ class GeneticAlgorithm extends EventEmitter {
           // division by 2**nBits necassary otherwise float64 overflows
           distances[cIdx] = d / 2**this.nBits;
         }
+        minDist /= 2**this.nBits;
+        maxDist /= 2**this.nBits;
         // Elites are at a loss because their distance to itself is 0.
         // You still wanna keep them because they are good solutions.
         // To do that, artificially add distance to them and make them seem diverse.
         // Distance of 0 is replaced with maxDist.
         for (let cIdx = 0; cIdx < this.nElite; cIdx++) {
-          distances[candIdxs[cIdx]] += maxDist / 2**this.nBits;
+          distances[candIdxs[cIdx]] += maxDist / this.nGenes;
         }
         // normalize using min-max rule
         // the further away you are from the fittest, the better
         for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
-          scores[cIdx] *= (distances[cIdx] - minDist) / (maxDist - minDist);
+          const old = scores[cIdx];
+          const factor = (distances[cIdx] - minDist) / (maxDist - minDist);
+          scores[cIdx] *= factor;
         }
         // re-sort after changing fitness
         candIdxs.sort((cIdx1, cIdx2) => scores[cIdx1] > scores[cIdx2] ? -1 : 1);
       }
 
+      // keep track of last nTrack BEST scores
+      maxScores[maxScoreIdx] =
+        scores.reduce((s1, s2) => Math.max(s1, s2)); // best fitness
+
       this.emit('best',
-        // fittest candidate
-        this.emitFittest ? pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes) : candIdxs[0],
+        this.emitFittest 
+          // fittest candidate
+          ? pop.subarray(candIdxs[0] * this.nGenes, (candIdxs[0] + 1) * this.nGenes) 
+          // can be disabled for better performance which causes it to return the idx of fittest cand
+          : candIdxs[0],
         // fitness of best candidate
         scores[candIdxs[0]],
         // improvement (difference between last best score and current fittest candidate score)
@@ -435,7 +526,32 @@ class GeneticAlgorithm extends EventEmitter {
       yield pop.subarray(offset, offset + this.nGenes);
     }
   }
+
+  [util.inspect.custom]() {
+    return 'GeneticAlgorithm ' + util.inspect(this.opts);
+  }
+
+  get opts() {
+    return {
+      dtype: this.dtype,
+      isMultimodal: this.isMultimodal,
+      maxNGeneMut: this.maxNGeneMut,
+      maxRandVal: this.maxRandVal,
+      minImp: this.minImp,
+      minNGeneMut: this.minNGeneMut,
+      minRandVal: this.minRandVal,
+      nElite: this.nElite,
+      nGenes: this.nGenes,
+      nRounds: this.nRounds,
+      nTrack: this.nTrack,
+      pElite: this.pElite,
+      pMutate: this.pMutate,
+      popSize: this.popSize,
+      timeOutMS: this.timeOutMS,
+      validateFitness: this.validateFitness,
+    };
+  }
 }
 
 module.exports = GeneticAlgorithm;
-// vim:hlsearch:sw=2:ts=4:expandtab:
+// vim:hlsearch:sw=2:ts=4:expandtab:foldmethod=manual:nu:

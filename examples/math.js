@@ -18,6 +18,8 @@ const fitnessFunct = xs => {
   }
 };
 
+debugger;
+
 const dtype = 'u8';
 const nGenes = 6;
 

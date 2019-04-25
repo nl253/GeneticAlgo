@@ -13,6 +13,7 @@ const nGenes = 500;  // the more genes, the more difficult the task
 const opts = {
   timeOutMS: 60 * SEC,
   validateFitness: false,
+  isMultimodal: true,
   emitFittest: false,
 };
 
@@ -22,11 +23,11 @@ const bestPossible = 2 ** 32 * nGenes; // every gene is max value of 32-bit unsi
 
 // [optional] use the EventEmitter API for getting profiling
 ga.on('start', (timeMS, cfg) => console.log(`[START] at ${new Date(timeMS).toTimeString()} with opts`, cfg));
-ga.on('best', (_fittestCand, fitness) => console.log('score', (fitness / bestPossible).toFixed(4), '/ 1.0'));
+ga.on('best', (_, fitness) => console.log('score', (fitness / bestPossible).toFixed(4), '/ 1.0'));
 // ga.on('mutate', (nM, pM) => console.log('#mutations', nM, 'pMutate', pM));
 ga.on('stuck', () => console.log(`[STUCK]`));
 ga.on('timeout', () => console.log(`[TIMEOUT]`));
-ga.on('end', (rIdx, _date, ms) => console.log(`[DONE] after round #${rIdx} (took ${ms / SEC}sec)`));
+ga.on('end', (rIdx, _, ms) => console.log(`[DONE] after round #${rIdx} (took ${ms / SEC}sec)`));
 
 /* ga.search() will create a generator that iterates over the best population
  * if you want the best candidate, just request the very first: */
