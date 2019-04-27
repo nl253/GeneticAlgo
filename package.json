@@ -26,11 +26,20 @@
   },
   "files": [
     "README.md",
-    "index.js",
+    "crossover.js",
+    "defaults.js",
+    "doMutate.js",
+    "dtype.js",
     "examples/math.js",
     "examples/meta.js",
     "examples/parallel.js",
-    "examples/simple.js"
+    "examples/simple.js",
+    "finished.js",
+    "index.js",
+    "initPop.js",
+    "multimodal.js",
+    "mutate.js",
+    "score.js"
   ],
   "homepage": "https://github.com/nl253/GeneticAlgo-JS",
   "keywords": [

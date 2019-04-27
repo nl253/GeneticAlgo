@@ -262,7 +262,8 @@
     "no-obj-calls": 2,
     "no-octal": 2,
     "no-octal-escape": 2,
-    "no-param-reassign": 2,
+    "no-param-reassign": 0,
+    "security/detect-object-injection": 0,
     "no-path-concat": 2,
     "no-plusplus": 0,
     "max-len": 0,
@@ -400,6 +401,7 @@
     ],
     "sort-imports": 1,
     "sort-keys": 1,
+    "radix": 0,
     "sort-vars": 0,
     "space-unary-ops": [
       2,
@@ -448,10 +450,19 @@
           "yield": "yields"
         },
         "preferType": {
-          "Boolean": "boolean",
-          "Number": "number",
-          "String": "string",
-          "object": "Object"
+          "array": "Array",
+          "boolean": "Boolean",
+          "promise": "Promise",
+          "reflect": "Reflect",
+          "regexp": "Regexp",
+          "date": "Date",
+          "proxy": "Proxy",
+          "bigint": "BigInt",
+          "map": "Map",
+          "number": "Number",
+          "object": "Object",
+          "set": "Set",
+          "string": "String"
         },
         "requireParamDescription": false,
         "requireReturn": false,

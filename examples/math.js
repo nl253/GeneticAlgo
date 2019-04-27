@@ -21,22 +21,20 @@ const fitnessFunct = xs => {
 const dtype = 'u8';
 const nGenes = 6;
 
-const opts = {
+const ga = new GA(fitnessFunct, nGenes, dtype, {
   maxNGeneMut: 2,
   // isMultimodal: true,
   nTrack: 200,
   popSize: 1500,
   timeOutMS: 12 * SEC,
-};
-
-const ga = new GA(fitnessFunct, nGenes, dtype, opts);
+});
 
 // [optional] use the EventEmitter API for profiling
 ga.on('stuck', () => console.log(`[END] stuck`));
 ga.on('timeout', () => console.log(`[END] timeout`));
 ga.on('end', (rIdx, _date, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
 
-// to see how pMutate changes: 
+// to see how pMutate changes:
 //
 //    ga.on('mutate', (nMutations, pMutate) => console.log(`mutating ${nMutations} genes (pMutate = ${pMutate})`));
 //
