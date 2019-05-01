@@ -2,8 +2,9 @@
  * Tournament selection (selection pressure depends on tournamentSize).
  *
  * @param {!EnvLoop} env
+ * @returns {!Number} index of selected candidate
  */
-function tournament({ tournamentSize, pElite, candIdxs, scores, popSize, nElite, }, isElite = false) {
+function tournament({ tournamentSize, pElite, candIdxs, scores, popSize, nElite }) {
   const idxs = new Uint32Array(new ArrayBuffer(4 * tournamentSize));
   if (Math.random() < pElite) {
     for (let i = 0; i < tournamentSize; i++) {

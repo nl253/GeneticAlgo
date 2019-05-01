@@ -28,6 +28,7 @@
     "README.md",
     "crossover.js",
     "defaults.js",
+    "nMutations.js",
     "dtype.js",
     "examples/math.js",
     "examples/metrics.js",

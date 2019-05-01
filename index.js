@@ -359,7 +359,10 @@ class GeneticAlgorithm extends EventEmitter {
         if (Math.random() < env.pMutate) {
           this.mutate(env);
         } else {
-          this.crossover(this.select(env), this.select(env), env);
+          const pIdx1 = this.select(env);
+          const pIdx2 = this.select(env);
+          this.emit('crossover', pIdx1, pIdx2, 1 - env.pMutate);
+          this.crossover(pIdx1, pIdx2, env);
         }
       }
     }

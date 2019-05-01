@@ -3,7 +3,7 @@
 - use when search space is too large to use brute-force search
   - e.g. solving equations, automating the process of design and solving **combinatorial problems** (timetable scheduling)
   - many **problems can be reformulated as exploring an n-dimensional search space**
-- **adaptive** probability of mutation
+- **adaptive** parameters
 - **elitism** (preserves top candidates)
 - detects when the algorithm is stuck in a local minimum and returns
 - allows for profiling and debugging (see **EventEmitter API**)
@@ -88,7 +88,7 @@ log2( 31) *   0^166 /   9 +   0^log2(166) = 0
 log2(221) *   0^100 / 132 +   0^log2(130) = 0
 log2(  2) *   0^157 / 211 +   0^log2(150) = 0
 log2(  2) *   0^100 / 132 +   0^log2(130) = 0
-... ... ... ... ... ... ... ... ... ...  ... 
+...   ...   ...   ...   ...   ...   ...   ... 
 ```
 
 ### [OPTIONAL] Decode Function
@@ -270,14 +270,6 @@ const opts = {
   // stop condition
   nRounds: 1E6,
 
-  // if you *don't* set it, it will grow with time based on
-  // how close timeTaken is to timeOutMS and how fit the candidate is
-  // the more fit the more likely it is to be mutated
-  // 
-  // you should not need to modify it,
-  // if you do, you should set it to a small value e.g. 0.05
-  pMutate: null,
-
   // it makes sense for it to be 100 - 1500 ish
   // 
   // if you find that the algorithm gets stuck too quickly, increase it
@@ -288,24 +280,21 @@ const opts = {
   nElite: 0.2,
 
   // probability of choosing elites for selection
-  // 
-  // when nElite is small and pElite is high you can have a small population 
-  // of elites but sample frequently 
-  // 
-  // if you find that the algorithm gets stuck too quickly, decrease it
-  pElite: 0.2,
+  // the algorithm will begin with pElite = minPElite, and increase it linearly with time
+  minPElite: 0.01,
+  maxPElite: 0.2,
+  
+  // tournament size for selection
+  // the algorithm will begin with tournamentSize = minTournamentSize, and increase it linearly with time
+  minTournamentSize: 0.01, // % of popSize, can be an Int (must be at least 2)
+  maxTournamentSize: 0.04, // % of popSize, can be an Int (must be >= minTournamentSize)
 
   // when mutating, target at least 1 gene
-  // it should not be too high because the point of 
-  // mutations it to introduce novelty in a controlled way (probably <10)
-  minNGeneMut: 1,
-
+  // the algorithm will begin with nMutations = minNMutations, and increase it linearly with time
+  minNMutations: 1,
   // by default it's set to a small value based on
-  // minNGeneMut and nGenes (the more genes, the higer it is)
-  // 
-  // it should not be too high because the point of 
-  // mutations it to introduce novelty in a controlled way
-  maxNGeneMut: null,
+  // nGenes (the more genes, the higher it is)
+  maxNMutations: null,
 
   // keep track of improvements in previous rounds to detect local minima
   // 
@@ -315,6 +304,9 @@ const opts = {
   // this is used to detect being stuck local minima (no improvement),
   // you should not need to change it
   minImprove: 1E-6,
+  
+  // check on every run if the fitness function returns NaN
+  validateFitness: false,
 
   // when mutating, the value of a gene is replaced with a random value
   // 
@@ -330,14 +322,12 @@ For example:
 const opts = {
   timeOutMS: 30 * SEC,
   nElite: 0.1,
-  pElite: 0.2,
 }
 const nGenes = 1000
 const dtype = 'u32'
 
 const ga = new GA(someFitnessFunct, nGenes, dtype, opts)
 ```
-
 
 ## Theory Behind Genetic Algorithms
 
@@ -378,10 +368,9 @@ from the other.
 In an ideal scenario, you would inherit genes from fit individuals.
 However, if you do that too often, you will loose novelty and you the
 algorithm will get stuck very quickly. You can change how often fittest
-candidates (elite) are chosen by changing `pElite`. `pElite = 1` always
-chooses elite units, `pElite = 0` never chooses them.
+candidates (elite) are chosen by changing `minPElite` and `maxPElite`. 
 
-**NOTE** `nElites` needs to be non-zero for this to work.
+**NOTE** `nElite` needs to be non-zero for this to work.
 
 ### Mutations
 
@@ -408,7 +397,6 @@ Population is a collection of candidate solutions. An initial population with
    [ 0,   222] // candidate 5
 ```
 
-
 ## Profiling with EventEmitter API
 
 The `GeneticAlgorithm` emits signals along with some information
@@ -419,10 +407,7 @@ which can be used for profiling.
 **Emitted Once** <br>
 
 1. `"init"` right after `.search()` is called, just *before* initialisation
-2. `"generate"` when generating initial population.
-3. `"randomize"` when setting random genes in the initial population.
 4. `"start"` after `.search()` and all initialisation is complete, before the 1st round
-    - **Int** `startTime` in milliseconds
     - **Object** `opts` the algorithm is run with (you can use it to see if you configured it properly)
 
 **Emitted on Stop Condition Met** <br>
@@ -432,75 +417,35 @@ which can be used for profiling.
 3. `"rounds"` when `nRounds` limit reached.
 4. `"end"` when finished.
     - **Int** `roundNumber`
-    - **Date** `dateFinished`
-    - **Int** `msTaken`
-
-<!-- 
-v2
-1. `"timeout"` when `timeOutMS` limit is reached.
-2. `"stuck"` when stuck in a local minimum.
-3. `"rounds"` when `nRounds` limit reached.
-4. `"end"` when finished.
-    - **Int** `roundNumber`
     - **Int** `msTaken`
     - **Date** `dateFinished`
--->
 
 **Emitted Every Round** <br>
 
 1. `"round"` on every round start (**not** the same as `"rounds"`).
     - **Int** `rIdx` round number.
 2. `"best"` after all candidates have been evaluated and the best candidate is selected.
-    - **TypedArray** `BestCandidate`
+    - **TypedArray | Int** `BestCandidate`
     - **Float** `scoreOfBestCandidate`
     - **Float** `improvementSinceLastRound`
-3. `"mutate"` on choosing mutation as opposed to crossover.
-    - **Int** `nMutations` number of genes to mutate.
-    - **Float** `pMutate` computed probability of mutation (this makes sense when `pMutate = null` which makes it adaptive, you can use it to see how it grows with time).
-4. `"crossover"` on choosing crossover as opposed to mutation.
-    - **Float** `pCrossover` computed probability of crossover (this makes sense when `pMutate = null` which makes it adaptive, it's basically `1 - pMuate`).
+3. `"pMutate"` **Float** 
+4. `"pElite"` **Float** 
+5. `"nMutations"` **Int** 
+6. `"tournamentSize"` **Int** 
+7. `"crossover"` on choosing crossover as opposed to mutation.
     - **Int** `parent1Idx`
     - **Int** `parent2Idx`
-    - **Bool** `didChooseElite`
-
-<!-- 
-v2
-1. `"round"` on every round start (**not** the same as `"rounds"`).
-    - **Int** `rIdx` round number.
-2. `"best"` after all candidates have been evaluated and the best candidate is selected.
-    - **Float** `scoreOfBestCandidate`
-    - **Float** `improvementSinceLastRound`
-3. `"mutate"` on choosing mutation as opposed to crossover.
-    - **Int** `nMutations` number of genes to mutate.
-    - **Float** `pMutate` computed probability of mutation (this makes sense when `pMutate = null` which makes it adaptive, you can use it to see how it grows with time).
-4. `"crossover"` on choosing crossover as opposed to mutation.
-    - **Float** `pCrossover` computed probability of crossover (this makes sense when `pMutate = null` which makes it adaptive, it's basically `1 - pMuate`).
-    - **Int** `parent1Idx`
-    - **Int** `parent2Idx`
-    - **Bool** `didChooseElite`
--->
-
+    - **Float** `pCrossover`
 
 Example of extracting data from signals:
 
 ```js
-ga.on('start', timeMS => console.log(`[START] at ${new Date(timeMS).toTimeString()}`))
-ga.on('best', (_fittestCand, fitness) => console.log(fitness))
-ga.on('stuck', () => console.log(`[END] stuck`))
-ga.on('timeout', () => console.log(`[END] timeout`))
-ga.on('end', (rIdx, _dateFinished, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`))
-```
-
-<!-- 
-v2
-```js
-ga.on('start', timeMS => console.log(`[START] at ${new Date(timeMS).toTimeString()}`))
-ga.on('best', fitness => console.log(fitness))
+ga.on('start', opts => console.log('[START] with opts', opts))
+ga.on('best', (_, fitness) => console.log(fitness))
 ga.on('stuck', () => console.log(`[END] stuck`))
 ga.on('timeout', () => console.log(`[END] timeout`))
 ga.on('end', (rIdx, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`))
 ```
--->
 
 More examples [here](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples).
 
