@@ -81,8 +81,8 @@ const DEFAULTS = {
   minPElite: 0.01,
   maxPElite: 0.2,
 
-  minTournamentSize: 0.05,
-  maxTournamentSize: 0.2,
+  minTournamentSize: 0.01,
+  maxTournamentSize: 0.04,
 
   minRandVal: null,       // guess
   maxRandVal: null,       // guess
@@ -243,7 +243,7 @@ class GeneticAlgorithm extends EventEmitter {
 
     // resolve ratio
     if (this.maxTournamentSize < 1) {
-      this.maxTournamentSize = Math.min(this.minTournamentSize, Math.floor(this.maxTournamentSize * this.popSize));
+      this.maxTournamentSize = Math.max(this.minTournamentSize, Math.floor(this.maxTournamentSize * this.popSize));
     }
 
     // default to a very small value of maxNMutations based on nGenes
@@ -354,7 +354,6 @@ class GeneticAlgorithm extends EventEmitter {
         env.offset = env.cIdx * this.nGenes;
         this.emit('nMutations', env.nMutations = this.nMutations(env));
         this.emit('pMutate', env.pMutate = this.pMutate(env));
-        this.emit('mutate', env.nMutations, env.pMutate);
         this.emit('tournamentSize', env.tournamentSize = this.tournamentSize(env));
         this.emit('pElite', env.pElite = this.pElite(env));
         if (Math.random() < env.pMutate) {
