@@ -102,7 +102,7 @@ const DEFAULTS = {
 
 class GeneticAlgorithm extends EventEmitter {
   /**
-   * @param {!function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} f
+   * @param {!function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} fitness
    * @param {!Number} nGenes
    * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
    * @param {{score: function(!Env), mutate: function(!EnvLoop), crossover: function(!EnvLoop), initPop: function(!Env), isFinished: function(!Env): (!String|!Boolean), select: function(!EnvLoop): !Number, tournamentSize: function(!EnvLoop): !Number, pMutate: function(!EnvLoop): !Number, nMutations: function(!EnvLoop): !Number, pElite: function(!EnvLoop): !Number, maxRandVal: !Number, minRandVal: !Number, nElite: !Number, minImprove: !Number, maxNMutations: !Number, minNMutations: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number, minNMutations: !Number, maxNMutations: !Number, minPElite: !Number, maxPElite: !Number, minTournamentSize: !Number, maxTournamentSize: !Number, emitFittest: ?Boolean, nRounds: !Number}} [opts]
@@ -152,7 +152,7 @@ class GeneticAlgorithm extends EventEmitter {
     };
 
     const assNum = vName => assert(vName, n => n.constructor.name === 'Number', `${vName} must be a Number`);
-    const assProb = vName => assert(vName, p => p >= 0 && p <= 1, `${vName} is a probability so it MUST be BETWEEN 0 AND 1`);
+    // const assProb = vName => assert(vName, p => p >= 0 && p <= 1, `${vName} is a probability so it MUST be BETWEEN 0 AND 1`);
     const assPos = vName => assert(vName, val => val >= 0, `${vName} MUST be positive`);
     const assInt = vName => assert(vName, n => Number.isInteger(n), `${vName} MUST be an integer`);
     // const assFloat = vName => assert(vName, n => !Number.isInteger(n), `${vName} MUST be a float`);
