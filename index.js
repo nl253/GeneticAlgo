@@ -364,7 +364,7 @@ class GeneticAlgorithm extends EventEmitter {
       }
     }
 
-    this.emit('end', env.rIdx, new Date(), env.timeTakenMS);
+    this.emit('end', env.rIdx, env.timeTakenMS, new Date());
 
     for (let ptr = 0; ptr < this.popSize; ptr++) {
       const offset = this.nGenes * env.candIdxs[ptr];

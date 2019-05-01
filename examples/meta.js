@@ -29,7 +29,7 @@ function decodeCand(cand) {
   };
 }
 
-function fitnessFunct(cand) {
+function fitness(cand) {
   const f = c => c.reduce((g1, g2) => g1 + g2, 0);
   const maximizer = new GA(f, 300, 'i32', decodeCand(cand));
   // [optional] use the EventEmitter API for getting profiling
@@ -41,14 +41,14 @@ function fitnessFunct(cand) {
   return f(bestCand);
 }
 
-const metaParamSetter = new GA(fitnessFunct, nGenes, 'u8', opts);
+const metaParamSetter = new GA(fitness, nGenes, 'u8', opts);
 
 // [optional] use the EventEmitter API for getting profiling
 metaParamSetter.on('start', time => console.log(`[START] at ${new Date(time).toTimeString()}`));
-metaParamSetter.on('best', (_fittestCand, score) => console.log(score));
+metaParamSetter.on('best', (_, score) => console.log(score));
 metaParamSetter.on('stuck', () => console.log('[END] stuck'));
 metaParamSetter.on('timeout', () => console.log('[END] timeout'));
-metaParamSetter.on('end', (rIdx, _date, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
+metaParamSetter.on('end', (rIdx, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
 
 const bestConfigs = metaParamSetter.search();
 

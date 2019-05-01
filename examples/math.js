@@ -23,22 +23,14 @@ const nGenes = 6;
 
 const ga = new GA(fitnessFunct, nGenes, dtype, {
   maxNMutations: 2,
-  // isMultimodal: true,
-  nTrack: 200,
-  popSize: 200,
-  timeOutMS: 5 * SEC,
+  timeOutMS: 2 * SEC,
 });
 
 // [optional] use the EventEmitter API for profiling
-ga.on('start', (_, env) => console.log(env));
+ga.on('start', env => console.log(env));
 ga.on('stuck', () => console.log(`[END] stuck`));
 ga.on('timeout', () => console.log(`[END] timeout`));
-ga.on('end', (rIdx, _date, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
-
-// to see how pMutate changes:
-//
-//   ga.on('mutate', (nMutations, pMutate) => console.log(`mutating ${nMutations} genes (pMutate = ${pMutate})`));
-//
+ga.on('end', (rIdx, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`));
 
 console.log('TASK: find x1, x2, x3, x4, x5, x6 such that log2(x1) * x2^x3 / x4 + x5^log2(x6) = 0');
 
