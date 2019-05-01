@@ -65,32 +65,39 @@ const { DTYPES,  f32, f64, u8, u16, u32, i8, i16, i32 } = require('./dtype');
 const { MIN_POPSIZE, MIN_NTRACK, MIN_NELITE } = require('./defaults');
 
 const DEFAULTS = {
+  // functions for parameters dynamically computed during runtime
   crossover: require('./crossover'),
-  emitFittest: true,
-  tournamentSize: require('./tournamentSize'),
   initPop: require('./initPop'),
   isFinished: require('./isFinished'),
-  maxNMutations: null,
-  maxPElite: null,
-  maxRandVal: null,
-  maxTournamentSize: 0.2,
-  minImprove: 1E-6,
-  minNMutations: 1,
-  minPElite: null,
-  minRandVal: null,
-  minTournamentSize: 0.05,
   mutate: require('./mutate'),
-  nElite: 0.2,
   nMutations: require('./nMutations'),
-  nRounds: 1E6,
-  nTrack: 100,
   pElite: require('./pElite'),
   pMutate: require('./pMutate'),
-  popSize: 300,
-  score: null,
-  timeOutMS: 30 * SEC,
   select: require('./tournament'),
-  validateFitness: true,
+  tournamentSize: require('./tournamentSize'),
+
+  emitFittest: true,      // emit best candidate or index of best candidate
+
+  minPElite: 0.01,
+  maxPElite: 0.2,
+
+  minTournamentSize: 0.05,
+  maxTournamentSize: 0.2,
+
+  minRandVal: null,       // guess
+  maxRandVal: null,       // guess
+
+  minNMutations: 1,
+  maxNMutations: null,    // guess based on nGenes
+
+  minImprove: 1E-6,
+  nElite: 0.2,
+  nRounds: 1E6,
+  nTrack: 100,
+  popSize: 300,
+  score: null,            // use default scoring procedure
+  timeOutMS: 30 * SEC,
+  validateFitness: false, // check if NaN returned
 };
 
 class GeneticAlgorithm extends EventEmitter {
@@ -98,13 +105,13 @@ class GeneticAlgorithm extends EventEmitter {
    * @param {!function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} f
    * @param {!Number} nGenes
    * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
-   * @param {{mutate: function({ pop: !TypedArray, minNMutations: !Number, maxNMutations: !Number, nGenes: !Number }), maxRandVal: !Number, minRandVal: !Number, nElite: !Number, minImprove: !Number, maxNMutations: !Number, minNMutations: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
+   * @param {{score: function(!Env), mutate: function(!EnvLoop), crossover: function(!EnvLoop), initPop: function(!Env), isFinished: function(!Env): (!String|!Boolean), select: function(!EnvLoop): !Number, tournamentSize: function(!EnvLoop): !Number, pMutate: function(!EnvLoop): !Number, nMutations: function(!EnvLoop): !Number, pElite: function(!EnvLoop): !Number, maxRandVal: !Number, minRandVal: !Number, nElite: !Number, minImprove: !Number, maxNMutations: !Number, minNMutations: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number, minNMutations: !Number, maxNMutations: !Number, minPElite: !Number, maxPElite: !Number, minTournamentSize: !Number, maxTournamentSize: !Number, emitFittest: ?Boolean, nRounds: !Number}} [opts]
    */
-  constructor(f, nGenes, dtype, opts = {}) {
+  constructor(fitness, nGenes, dtype, opts = {}) {
     super();
 
     // validation on `f`, `nGenes` and `dtype`
-    for (const v of ['f', 'dtype', 'nGenes']) {
+    for (const v of ['fitness', 'dtype', 'nGenes']) {
       if (eval(v) === undefined) {
         throw new Error(`you MUST set ${v}`);
       }
@@ -122,11 +129,11 @@ class GeneticAlgorithm extends EventEmitter {
       throw new Error(`unrecognised dtype "${dtype}", choose from: ${Array.from(DTYPES).join(', ')}`);
     }
 
-    if (f.constructor.name !== 'Function') {
+    if (fitness.constructor.name !== 'Function') {
       throw new Error(`fitness function must be a Function`);
     }
 
-    this.f = f;
+    this.fitness = fitness;
     this.nGenes = nGenes;
     this.dtype = dtype;
     this.nBits = parseInt(bitRegex.exec(dtype)[0]);
@@ -267,7 +274,6 @@ class GeneticAlgorithm extends EventEmitter {
 
   * search() {
     this.emit('init');
-    this.emit('generate');
 
     /** @type {!Env} */
     const env = Object.assign({
@@ -299,10 +305,8 @@ class GeneticAlgorithm extends EventEmitter {
     }, this);
 
     env.maxScores[this.nTrack - 1] = Infinity;
-
-    this.emit('randomize');
     this.initPop(env);
-    this.emit('start', env.startTm, env);
+    this.emit('start', env);
 
     // bootstrap elite scores
     this.score(env);
@@ -348,11 +352,11 @@ class GeneticAlgorithm extends EventEmitter {
       for (env.ptr = this.nElite; env.ptr < this.popSize; env.ptr++) {
         env.cIdx = env.candIdxs[env.ptr];
         env.offset = env.cIdx * this.nGenes;
-        env.nMutations = this.nMutations(env);
-        env.pMutate = this.pMutate(env);
-        env.tournamentSize = this.tournamentSize(env);
-        env.pElite = this.pElite(env);
+        this.emit('nMutations', env.nMutations = this.nMutations(env));
+        this.emit('pMutate', env.pMutate = this.pMutate(env));
         this.emit('mutate', env.nMutations, env.pMutate);
+        this.emit('tournamentSize', env.tournamentSize = this.tournamentSize(env));
+        this.emit('pElite', env.pElite = this.pElite(env));
         if (Math.random() < env.pMutate) {
           this.mutate(env);
         } else {

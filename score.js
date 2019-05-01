@@ -1,14 +1,14 @@
 /**
  * @param {!Env} env
  */
-function scoreChecked({ pop, scores, popSize, f, nGenes }) {
+function scoreChecked({ pop, scores, popSize, fitness, nGenes }) {
   // unfortunately, for the purpose of evaluating
   // fitness each candidate must be extracted from pop into a subarray
   //
   // reuse fitness scores for elites from prev round
   // protect against fitness function returning NaN or Infinity
   for (let cIdx = 0; cIdx < popSize; cIdx++) {
-    scores[cIdx] = f(pop.subarray(cIdx * nGenes, cIdx * nGenes + nGenes));
+    scores[cIdx] = fitness(pop.subarray(cIdx * nGenes, cIdx * nGenes + nGenes));
     if (Object.is(NaN, scores[cIdx])) {
       console.warn('[WARN] fitness function returned NaN');
       scores[cIdx] = -Infinity;
@@ -21,9 +21,9 @@ function scoreChecked({ pop, scores, popSize, f, nGenes }) {
 /**
  * @param {!Env} env
  */
-function score({ pop, scores, popSize, f, nGenes }) {
+function score({ pop, scores, popSize, fitness, nGenes }) {
   for (let cIdx = 0; cIdx < popSize; cIdx++) {
-    scores[cIdx] = f(pop.subarray(cIdx * nGenes, cIdx * nGenes + nGenes));
+    scores[cIdx] = fitness(pop.subarray(cIdx * nGenes, cIdx * nGenes + nGenes));
   }
 }
 
