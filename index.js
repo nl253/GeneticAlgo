@@ -1,37 +1,46 @@
-/* eslint-disable sort-keys,global-require */
+/* eslint-disable sort-keys,global-require,no-magic-numbers,complexity,max-lines,no-undefined */
 /**
  * @typedef {Object} Opts
- * @property {!String} dtype
- * @property {!Number} nGenes
- * @property {!Boolean} isMultimodal
- * @property {!Number} maxNGeneMut
- * @property {!Number} minNGeneMut
- * @property {!Number} minRandVal
+ * @property {!Boolean} validateFitness
+ * @property {!Number} maxNMutations
+ * @property {!Number} maxPElite
  * @property {!Number} maxRandVal
+ * @property {!Number} minImprove
+ * @property {!Number} minNMutations
+ * @property {!Number} minPElite
+ * @property {!Number} minRandVal
+ * @property {!Number} minTournamentSize
  * @property {!Number} nElite
- * @property {!Number} pElite
- * @property {!Number} minImp
+ * @property {!Number} nGenes
+ * @property {!Number} nRounds
  * @property {!Number} nTrack
  * @property {!Number} popSize
  * @property {!Number} timeOutMS
- * @property {!Boolean} validateFitness
- * @property {!Number} nRounds
+ * @property {!String} dtype
  */
 
 /**
  * @typedef {Opts} Env
- * @property {!Function} emit
+ * @property {!Function} f
+ * @property {!Number} nBits
  * @property {!Number} rIdx
  * @property {!Number} startTm
  * @property {!TypedArray} pop
- * @property {?Number} timeTakenMS
  * @property {!Uint32Array} candIdxs
- * @property {Float64Array} scores
- * @property {Float64Array} maxScores
  * @property {?Number} maxScoreIdx
  * @property {?Number} maxScoreIdxPrev
- * @property {!Function} f
- * @property {!Number} nBits
+ * @property {?Number} timeTakenMS
+ * @property {Float64Array} maxScores
+ * @property {Float64Array} scores
+ */
+
+/**
+ * @typedef {Env} EnvLoop
+ * @property {!Number} cIdx
+ * @property {!Number} nMutations
+ * @property {!Number} offset
+ * @property {!Number} pMutate
+ * @property {!Number} ptr
  */
 
 /**
@@ -50,32 +59,37 @@ const { EventEmitter } = require('events');
 
 const SEC = 1000;
 const bitRegex = /8|16|32|64/;
+// eslint-disable-next-line no-unused-vars
 // noinspection JSUnusedLocalSymbols
 const { DTYPES,  f32, f64, u8, u16, u32, i8, i16, i32 } = require('./dtype');
 const { MIN_POPSIZE, MIN_NTRACK, MIN_NELITE } = require('./defaults');
 
 const DEFAULTS = {
   crossover: require('./crossover'),
-  doMutate: require('./doMutate'),
   emitFittest: true,
+  tournamentSize: require('./tournamentSize'),
   initPop: require('./initPop'),
-  isFinished: require('./finished'),
-  isMultimodal: false,
-  maxNGeneMut: null,
+  isFinished: require('./isFinished'),
+  maxNMutations: null,
+  maxPElite: null,
   maxRandVal: null,
-  minImp: 1E-6,
-  minNGeneMut: 1,
+  maxTournamentSize: 0.2,
+  minImprove: 1E-6,
+  minNMutations: 1,
+  minPElite: null,
   minRandVal: null,
-  multimodal: require('./multimodal'),
+  minTournamentSize: 0.05,
   mutate: require('./mutate'),
   nElite: 0.2,
+  nMutations: require('./nMutations'),
   nRounds: 1E6,
   nTrack: 100,
-  pElite: null,
-  pMutate: null,
+  pElite: require('./pElite'),
+  pMutate: require('./pMutate'),
   popSize: 300,
   score: null,
   timeOutMS: 30 * SEC,
+  select: require('./tournament'),
   validateFitness: true,
 };
 
@@ -84,7 +98,7 @@ class GeneticAlgorithm extends EventEmitter {
    * @param {!function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} f
    * @param {!Number} nGenes
    * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
-   * @param {{mutate: function({ pop: !TypedArray, minNGeneMut: !Number, maxNGeneMut: !Number, nGenes: !Number }), isMultimodal: ?Boolean, pElite: !Number, maxRandVal: !Number, minRandVal: !Number, nElite: !Number, minImp: !Number, maxNGeneMut: !Number, minNGeneMut: !Number, pMutate: ?Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
+   * @param {{mutate: function({ pop: !TypedArray, minNMutations: !Number, maxNMutations: !Number, nGenes: !Number }), maxRandVal: !Number, minRandVal: !Number, nElite: !Number, minImprove: !Number, maxNMutations: !Number, minNMutations: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number}} [opts]
    */
   constructor(f, nGenes, dtype, opts = {}) {
     super();
@@ -141,14 +155,12 @@ class GeneticAlgorithm extends EventEmitter {
     // const assGT = (vName, n) => assert(vName, val => val > n, `${vName} MUST be greater than ${n}`);
 
     for (const vName of [
-      'maxNGeneMut',
-      'minImp',
-      'minNGeneMut',
+      'maxNMutations',
+      'minImprove',
+      'minNMutations',
       'nElite',
       'nRounds',
       'nTrack',
-      'pElite',
-      'pMutate',
       'popSize',
       'timeOutMS',
     ]) {
@@ -157,8 +169,8 @@ class GeneticAlgorithm extends EventEmitter {
     }
 
     for (const vName of [
-      'maxNGeneMut',
-      'minNGeneMut',
+      'maxNMutations',
+      'minNMutations',
       'nRounds',
       'nTrack',
       'popSize',
@@ -171,12 +183,6 @@ class GeneticAlgorithm extends EventEmitter {
     assGTE('popSize', MIN_POPSIZE);
     assGTE('nTrack', MIN_NTRACK);
 
-    for (const vName of ['pMutate', 'pElite']) {
-      assNum(vName);
-      assProb(vName);
-    }
-
-    // eslint-disable-next-line no-undefined
     if (opts.nElite !== undefined && opts.popSize !== undefined && opts.nElite > opts.popSize) {
       throw new Error('nElite CANNOT be greater than popSize');
     }
@@ -184,17 +190,15 @@ class GeneticAlgorithm extends EventEmitter {
     assert('nElite', nElite => Number.isInteger(nElite) || nElite <= 1, 'nElite must be EITHER an Int specifying the number of elite candidate OR a ratio, a Float between 0 and 1');
     assert('nElite', nElite => !Number.isInteger(nElite) || nElite >= MIN_NELITE, `nElite MUST be a ratio 0..1 OR an in greater than or equal to ${MIN_NELITE}`);
 
-    assLTE('minNGeneMut', nGenes);
-    assGTE('minNGeneMut', 1);
+    assLTE('minNMutations', nGenes);
+    assGTE('minNMutations', 1);
 
     assert('minRandVal', minRandVal => !dtype.startsWith('u') || minRandVal >= 0, 'minRandVal CANNOT be negative when using unsigned integers (UintArray)');
-    // eslint-disable-next-line no-undefined
     if (opts.minRandVal !== undefined && opts.maxRandVal !== undefined && opts.minRandVal > opts.maxRandVal) {
       throw new Error('minRandVal CANNOT be greater than `maxRandVal`');
     }
 
     for (const k of Object.keys(opts)) {
-      // eslint-disable-next-line no-undefined
       if (DEFAULTS[k] === undefined) {
         throw new Error(`unrecognized option ${k}`);
       }
@@ -208,12 +212,6 @@ class GeneticAlgorithm extends EventEmitter {
       ),
     );
 
-    if (this.isMultimodal && !this.multimodal) {
-      this.multimodal = require('./mulitmodal');
-    } else {
-      this.multimodal = () => null;
-    }
-
     if (this.score === null) {
       this.score = require('./score')(this.validateFitness);
     }
@@ -223,14 +221,27 @@ class GeneticAlgorithm extends EventEmitter {
       this.nElite = Math.floor(this.nElite * this.popSize);
     }
 
-    // default to pElite equal to ratio of elites to popSize
-    if (this.pElite === null) {
-      this.pElite = this.nElite / this.popSize;
+    if (this.minPElite === null) {
+      this.minPElite = this.nElite / this.popSize;
     }
 
-    // default to a very small value of maxNGeneMut based on nGenes
-    if (this.maxNGeneMut === null) {
-      this.maxNGeneMut = this.minNGeneMut + Math.floor(Math.log2(nGenes) / 2);
+    if (this.maxPElite === null) {
+      this.maxPElite = this.minPElite;
+    }
+
+    // resolve ratio
+    if (this.minTournamentSize < 1) {
+      this.minTournamentSize = Math.min(2, Math.floor(this.minTournamentSize * this.popSize));
+    }
+
+    // resolve ratio
+    if (this.maxTournamentSize < 1) {
+      this.maxTournamentSize = Math.min(this.minTournamentSize, Math.floor(this.maxTournamentSize * this.popSize));
+    }
+
+    // default to a very small value of maxNMutations based on nGenes
+    if (this.maxNMutations === null) {
+      this.maxNMutations = this.minNMutations + Math.floor(Math.log2(nGenes) / 2);
     }
 
     // intelligently compute min and max bounds of search space based on `dtype`
@@ -285,9 +296,6 @@ class GeneticAlgorithm extends EventEmitter {
       maxScoreIdx: null,
 
       maxScoreIdxPrev: null,
-
-      emit: this.emit,
-
     }, this);
 
     env.maxScores[this.nTrack - 1] = Infinity;
@@ -318,8 +326,6 @@ class GeneticAlgorithm extends EventEmitter {
       // re-sort candidates based on fitness (1st is most fit, last is least fit)
       env.candIdxs.sort((cIdx1, cIdx2) => (env.scores[cIdx1] > env.scores[cIdx2] ? -1 : 1));
 
-      this.multimodal(env);
-
       // keep track of last nTrack BEST scores
       env.maxScores[env.maxScoreIdx] = env.scores.reduce((s1, s2) => Math.max(s1, s2)); // best fitness
 
@@ -339,16 +345,18 @@ class GeneticAlgorithm extends EventEmitter {
       /* go over non-elite units (elitism - leave best units unaltered)
        *
        * NOTE: order of candIdxs is as follows: [best, second best, third best, ..., worst] */
-      for (let ptr = this.nElite; ptr < this.popSize; ptr++) {
-        const cfg = Object.assign({
-          cIdx: env.candIdxs[ptr],
-          offset: env.candIdxs[ptr] * this.nGenes,
-          ptr,
-        }, env);
-        if (this.doMutate(cfg)) {
-          this.mutate(cfg);
+      for (env.ptr = this.nElite; env.ptr < this.popSize; env.ptr++) {
+        env.cIdx = env.candIdxs[env.ptr];
+        env.offset = env.cIdx * this.nGenes;
+        env.nMutations = this.nMutations(env);
+        env.pMutate = this.pMutate(env);
+        env.tournamentSize = this.tournamentSize(env);
+        env.pElite = this.pElite(env);
+        this.emit('mutate', env.nMutations, env.pMutate);
+        if (Math.random() < env.pMutate) {
+          this.mutate(env);
         } else {
-          this.crossover(cfg);
+          this.crossover(this.select(env), this.select(env), env);
         }
       }
     }
@@ -378,18 +386,15 @@ class GeneticAlgorithm extends EventEmitter {
   get opts() {
     return {
       dtype: this.dtype,
-      isMultimodal: this.isMultimodal,
-      maxNGeneMut: this.maxNGeneMut,
+      maxNMutations: this.maxNMutations,
       maxRandVal: this.maxRandVal,
-      minImp: this.minImp,
-      minNGeneMut: this.minNGeneMut,
+      minImprove: this.minImprove,
+      minNMutations: this.minNMutations,
       minRandVal: this.minRandVal,
       nElite: this.nElite,
       nGenes: this.nGenes,
       nRounds: this.nRounds,
       nTrack: this.nTrack,
-      pElite: this.pElite,
-      pMutate: this.pMutate,
       popSize: this.popSize,
       timeOutMS: this.timeOutMS,
       validateFitness: this.validateFitness,

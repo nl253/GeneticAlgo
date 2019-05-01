@@ -390,9 +390,9 @@ operation**. It takes a single candidate and **randomly alters a single
 gene.** Mutations introduce **novelty**. If your algorithm gets stuck too
 quickly it's because there was not enough novelty. In an ideal scenario,
 fittest candidates would undergo mutation whereas the least fit would use
-crossover. Furthermore, ideally, the algorithm would prevent premature
-convergence by increasing the probability of mutation with time. This
-implementation does both for you automatically.
+crossover. Furthermore, ideally, the algorithm would explore the fitness
+landscape more at the beginning and then exploit the discovered peaks at the
+end of running the algorithm.  This implementation does both for you automatically.
 
 ### Population
 

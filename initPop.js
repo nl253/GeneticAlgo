@@ -1,9 +1,9 @@
 /**
  * Initialise pop to rand values.
  *
- * @param {{pop: !TypedArray, popSize: !Number, nGenes: !Number, maxRandVal: !Number, minRandVal: !Number}} env
+ * @param {!Env} env
  */
-function initPop({ pop, dtype, popSize, nGenes, maxRandVal, minRandVal }) {
+function initPop({ pop, dtype, popSize, nGenes, minRandVal, maxRandVal }) {
   for (let cIdx = 0; cIdx < popSize; cIdx++) {
     const offset = cIdx * nGenes;
     for (let gIdx = 0; gIdx < nGenes; gIdx++) {

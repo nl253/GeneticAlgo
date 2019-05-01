@@ -1,12 +1,9 @@
 /**
  * Default mutate function.
  *
- * @param {!Env} env
+ * @param {!EnvLoop} env
  */
-function mutate({ ptr, offset, pop, nGenes, minNGeneMut, maxNGeneMut, maxRandVal, minRandVal }) {
-  // UNIQUE mutations (on different genes)
-  const nMutations = minNGeneMut + Math.floor(Math.random() * (maxNGeneMut - minNGeneMut));
-
+function mutate({ nMutations, offset, pop, nGenes, minRandVal, maxRandVal }) {
   // make sure that you don't mutate the same gene twice
   const mutated = new Set();
 

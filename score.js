@@ -29,7 +29,7 @@ function score({ pop, scores, popSize, f, nGenes }) {
 
 /**
  * @param {!Boolean} doCheck
- * @return {!Function}
+ * @returns {!Function}
  */
 function wrapper(doCheck) {
   if (doCheck) {
