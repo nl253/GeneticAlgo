@@ -17,7 +17,7 @@ const ga = new GA(fitness, nGenes, dtype, opts);
 const bestPossible = 2 ** 32 * nGenes; // every gene is max value of 32-bit unsigned int
 
 // [OPTIONAL] use the EventEmitter API for getting profiling
-ga.on('best', (_, fitness) => console.log('score', (fitness / bestPossible).toFixed(4), '/ 1.0'));
+ga.on('score', env => console.log('score', (env.bestScore / bestPossible).toFixed(4), '/ 1.0'));
 
 /* ga.search() will create a generator that iterates over the best population
  * if you want the best candidate, just request the very first: */

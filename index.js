@@ -43,17 +43,6 @@
  * @property {!Number} ptr
  */
 
-/**
- * Implements:
- *
- * - elitism
- * - local-minimum detection
- * - truncation selection
- * - timeout finish
- * - nRound finish
- * - adaptive pMutate
- */
-
 const util = require('util');
 const { EventEmitter } = require('events');
 
@@ -76,7 +65,7 @@ const DEFAULTS = {
   select: require('./tournament'),
   tournamentSize: require('./tournamentSize'),
 
-  emitFittest: true,      // emit best candidate or index of best candidate
+  emitFittest: false,      // emit best candidate or index of best candidate
 
   minPElite: 0.01,
   maxPElite: 0.2,
@@ -98,6 +87,8 @@ const DEFAULTS = {
   score: null,            // use default scoring procedure
   timeOutMS: 30 * SEC,
   validateFitness: false, // check if NaN returned
+
+  debug: 0, // log
 };
 
 class GeneticAlgorithm extends EventEmitter {
@@ -162,6 +153,7 @@ class GeneticAlgorithm extends EventEmitter {
     // const assGT = (vName, n) => assert(vName, val => val > n, `${vName} MUST be greater than ${n}`);
 
     for (const vName of [
+      'debug',
       'maxNMutations',
       'minImprove',
       'minNMutations',
@@ -176,6 +168,7 @@ class GeneticAlgorithm extends EventEmitter {
     }
 
     for (const vName of [
+      'debug',
       'maxNMutations',
       'minNMutations',
       'nRounds',
@@ -236,9 +229,12 @@ class GeneticAlgorithm extends EventEmitter {
       this.maxPElite = this.minPElite;
     }
 
-    // resolve ratio
     if (this.minTournamentSize < 1) {
-      this.minTournamentSize = Math.min(2, Math.floor(this.minTournamentSize * this.popSize));
+      this.minTournamentSize = 
+        // tournament size min = 2
+        Math.min(2, 
+          // resolve ratio
+          Math.floor(this.minTournamentSize * this.popSize));
     }
 
     // resolve ratio
@@ -270,18 +266,27 @@ class GeneticAlgorithm extends EventEmitter {
         this.minRandVal = 0;
       }
     }
+    if (this.debug > 0) {
+      this.on('start', env => console.log('started genetic algo at', new Date(), 'with opts', env));
+      this.on('end', env => console.log('finished running genetic algo at', new Date(), `took ${env.timeTakenMS / 1000}sec, did ${env.rIdx} rounds`));
+      for (const reason of ['stuck', 'rounds', 'timeout']) {
+        this.on(reason, () => console.log(`[${reason}]`));
+      }
+      if (this.debug >= 2) {
+        this.on('op', env => console.log(env.op.padStart('crossover'.length), `(p = ${(env.op === 'crossover' ? (1 - env.pMutate) : env.pMutate).toFixed(2)})`, env.op === 'crossover' ? `on ${`#${env.pIdx1}`.padStart(4)} & ${`#${env.pIdx2}`.padStart(4)}` : `on ${`#${env.ptr}`.padStart(4)} ${' '.repeat(7)}(${env.nMutations} mutations)`));
+      }
+      if (this.debug >= 1) {
+        this.on('score', env => console.log(`[round ${`#${env.rIdx}`.padStart(6)}] best cand = ${`#${env.bestIdx}`.padStart(4)}, best score = ${env.bestScore.toString().padStart(15)}, improvement = ${env.improvement.toString().padStart(12)}`));
+      }
+    }
   }
 
   * search() {
-    this.emit('init');
-
     /** @type {!Env} */
     const env = Object.assign({
       // round number
       rIdx: 0,
-
       startTm: Date.now(),
-
       timeTakenMS: null,
 
       // concatenation of all candidates
@@ -297,77 +302,83 @@ class GeneticAlgorithm extends EventEmitter {
 
       // scores of fittest candidates from last nTrack rounds
       // metric of improvement
-      maxScores: f64(this.nTrack),
-
+      maxScores: f64(this.nTrack), // used as circular buffer
       maxScoreIdx: null,
-
       maxScoreIdxPrev: null,
     }, this);
 
+    // ensure it doesn't finish during first nTrack rounds
     env.maxScores[this.nTrack - 1] = Infinity;
+
     this.initPop(env);
+
     this.emit('start', env);
 
     // bootstrap elite scores
     this.score(env);
+
     // sort candidates based on fitness (1st is most fit, last is least fit)
-    env.candIdxs.sort((cIdx1, cIdx2) => (env.scores[cIdx1] > env.scores[cIdx2] ? -1 : 1));
+    env.candIdxs.sort((cIdx1, cIdx2) => env.scores[cIdx1] > env.scores[cIdx2] ? -1 : 1);
 
     while (true) {
-      env.maxScoreIdx = env.rIdx % this.nTrack;
+      env.maxScoreIdx = env.rIdx % this.nTrack; // index in an array acting as cricular buffer
       env.timeTakenMS = Date.now() - env.startTm;
 
-      const maybeDone = this.isFinished(env);
-      if (maybeDone !== false) {
-        this.emit(maybeDone);
+      this.emit('round', env);
+
+      const maybeDoneSignal = this.isFinished(env);
+      if (maybeDoneSignal !== false) {
+        this.emit(maybeDoneSignal);
         break;
       }
 
-      this.emit('round', ++env.rIdx, env.timeTakenMS);
+      ++env.rIdx;
 
       this.score(env);
 
       // re-sort candidates based on fitness (1st is most fit, last is least fit)
-      env.candIdxs.sort((cIdx1, cIdx2) => (env.scores[cIdx1] > env.scores[cIdx2] ? -1 : 1));
+      env.candIdxs.sort((cIdx1, cIdx2) => env.scores[cIdx1] > env.scores[cIdx2] ? -1 : 1);
 
-      // keep track of last nTrack BEST scores
-      env.maxScores[env.maxScoreIdx] = env.scores.reduce((s1, s2) => Math.max(s1, s2)); // best fitness
+      // can be disabled for better performance which causes it to return the idx of fittest candidate
+      if (this.emitFittest) {
+        // fittest candidate
+        env.best = env.pop.subarray(env.candIdxs[0] * this.nGenes, (env.candIdxs[0] + 1) * this.nGenes);
+      }
 
-      this.emit('best',
-        this.emitFittest
-          // fittest candidate
-          ? env.pop.subarray(env.candIdxs[0] * this.nGenes, (env.candIdxs[0] + 1) * this.nGenes)
-          // can be disabled for better performance which causes it to return the idx of fittest cand
-          : env.candIdxs[0],
-        // fitness of best candidate
-        env.scores[env.candIdxs[0]],
-        // improvement (difference between last best score and current fittest candidate score)
-        env.maxScores[env.maxScoreIdx] - env.maxScores[env.maxScoreIdxPrev]);
-
+      env.bestIdx = env.candIdxs[0];
+      // fitness of best candidate
+      // store in cirular buffer (simulated using array and maxScoreIdx)
+      env.bestScore = env.maxScores[env.maxScoreIdx] = env.scores.reduce((s1, s2) => Math.max(s1, s2));
+      // improvement (difference between last best score and current fittest candidate score)
+      env.improvement = env.maxScores[env.maxScoreIdx] - env.maxScores[env.maxScoreIdxPrev];
       env.maxScoreIdxPrev = env.maxScoreIdx;
+
+      this.emit('score', env);
 
       /* go over non-elite units (elitism - leave best units unaltered)
        *
-       * NOTE: order of candIdxs is as follows: [best, second best, third best, ..., worst] */
+       * NOTE: order of candIdxs is as follows: [best, 2nd best, ..., worst] */
       for (env.ptr = this.nElite; env.ptr < this.popSize; env.ptr++) {
         env.cIdx = env.candIdxs[env.ptr];
         env.offset = env.cIdx * this.nGenes;
-        this.emit('nMutations', env.nMutations = this.nMutations(env));
-        this.emit('pMutate', env.pMutate = this.pMutate(env));
-        this.emit('tournamentSize', env.tournamentSize = this.tournamentSize(env));
-        this.emit('pElite', env.pElite = this.pElite(env));
+        env.pElite = this.pElite(env);
+        env.pMutate = this.pMutate(env);
         if (Math.random() < env.pMutate) {
+          env.op = 'mutate';
+          env.nMutations = this.nMutations(env);
           this.mutate(env);
         } else {
-          const pIdx1 = this.select(env);
-          const pIdx2 = this.select(env);
-          this.emit('crossover', pIdx1, pIdx2, 1 - env.pMutate);
-          this.crossover(pIdx1, pIdx2, env);
+          env.op = 'crossover';
+          env.tournamentSize = this.tournamentSize(env);
+          env.pIdx1 = this.select(env);
+          env.pIdx2 = this.select(env);
+          this.crossover(env);
         }
+        this.emit('op', env);
       }
     }
 
-    this.emit('end', env.rIdx, env.timeTakenMS, new Date());
+    this.emit('end', env);
 
     for (let ptr = 0; ptr < this.popSize; ptr++) {
       const offset = this.nGenes * env.candIdxs[ptr];

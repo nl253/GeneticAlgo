@@ -1,11 +1,9 @@
 /**
  * Default crossover function.
  *
- * @param {!Number} pIdx1
- * @param {!Number} pIdx2
  * @param {!EnvLoop} env
  */
-function crossover(pIdx1, pIdx2, { offset, pop, nGenes }) {
+function crossover({ pIdx1, pIdx2, offset, pop, nGenes }) {
   // avoid positional bias
   // don't use cross-over point, otherwise genes CLOSE to each other will be more likely to be inherited
   const offset1 = pIdx1 * nGenes;

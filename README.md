@@ -3,7 +3,7 @@
 - use when search space is too large to use brute-force search
   - e.g. solving equations, automating the process of design and solving **combinatorial problems** (timetable scheduling)
   - many **problems can be reformulated as exploring an n-dimensional search space**
-- **adaptive** parameters
+- **adaptive** parameters that change linearly as time approaches end
 - **elitism** (preserves top candidates)
 - detects when the algorithm is stuck in a local minimum and returns
 - allows for profiling and debugging (see **EventEmitter API**)
@@ -46,7 +46,7 @@ In a nutshell:
    that score the highest will be favoured in the
    selection and will make it to the next gene pool. (see **FITNESS FUNCTION** section below)
 3. Choose `dtype`, one of: `"f64" | "f32" | "i32" | "i16" | "i8" | "u32" | "u16" | "u8"` (see **DTYPE** section below)
-4. [EXTRA] You probably want a `decode` function as well (see **DECODE FUNCTION** section below).
+4. [EXTRA] You might want a `decode` function as well (see **DECODE FUNCTION** section below).
 
 ## Fitness Function
 
@@ -63,7 +63,9 @@ The previous example maximised the value of every gene. This example
 computes the negative of the distance from roots of an equation:
 
 ```js
+// find root of expr
 const expr = (x1, x2, x3, x4, x5, x6) => (Math.log2(x1) * x2 ** x3 / x4) + x5 ** (Math.log2(x6))
+
 const fitness = xs => {
   const val = -(Math.abs(expr(...xs)))
   if (Object.is(NaN, val) || Object.is(Infinity, val)) {
@@ -90,6 +92,9 @@ log2(  2) *   0^157 / 211 +   0^log2(150) = 0
 log2(  2) *   0^100 / 132 +   0^log2(130) = 0
 ...   ...   ...   ...   ...   ...   ...   ... 
 ```
+
+It's crucial that you reward candidate solutions for **approximating** i.e.
+getting close to the solution. If they are a bit right -- add some fitness.
 
 ### [OPTIONAL] Decode Function
 
@@ -270,47 +275,70 @@ const opts = {
   // stop condition
   nRounds: 1E6,
 
+  // how many candidate solutions to keep track of
+  // 
   // it makes sense for it to be 100 - 1500 ish
   // 
   // if you find that the algorithm gets stuck too quickly, increase it
   popSize: 300,
 
+  // number of elite candidates (guaranteed to make it to next gene pool unaltered) 
+  // 
   // 0.2 is 20%, 10 is 10
+  // 
   // if you find that the algorithm gets stuck too quickly, decrease it
   nElite: 0.2,
 
   // probability of choosing elites for selection
-  // the algorithm will begin with pElite = minPElite, and increase it linearly with time
+  //
+  // the algorithm will begin with pElite = minPElite,
+  // and increase it linearly with time until it reaches maxPElite
   minPElite: 0.01,
   maxPElite: 0.2,
   
   // tournament size for selection
   // the algorithm will begin with tournamentSize = minTournamentSize, and increase it linearly with time
+  // 
+  // decrease both if you find that the algorithm gets stuck too quickly
   minTournamentSize: 0.01, // % of popSize, can be an Int (must be at least 2)
   maxTournamentSize: 0.04, // % of popSize, can be an Int (must be >= minTournamentSize)
 
-  // when mutating, target at least 1 gene
-  // the algorithm will begin with nMutations = minNMutations, and increase it linearly with time
+  // when mutating, target at least ? genes
+  //
+  // the algorithm will begin with nMutations = maxNMutations,
+  // and decrease it linearly with time until it reaches miNNMutations
   minNMutations: 1,
-  // by default it's set to a small value based on
-  // nGenes (the more genes, the higher it is)
+
+  // when mutating, target at most ? genes
+  //
+  // by default it's set to a small value based on nGenes 
+  // the more genes, the higher it is
   maxNMutations: null,
 
   // keep track of improvements in previous rounds to detect local minima
-  // 
+  //
   // if you find that the algorithm gets stuck too quickly, increase it
   nTrack: 100,
-  // 
-  // this is used to detect being stuck local minima (no improvement),
+
+  // used to detect being stuck local minima (no improvement),
+  //
   // you should not need to change it
   minImprove: 1E-6,
   
-  // check on every run if the fitness function returns NaN
+  // check on every evalutation if the fitness function returns NaN
+  // 
+  // you can enable it at the expense of some performance
+  // it's best to have it disabled and ensure the fitness function never returns NaN
   validateFitness: false,
 
   // when mutating, the value of a gene is replaced with a random value
+  // this specifies the range of the random value
   // 
-  // this is set intelligently based on dtype
+  // set intelligently based on dtype so not necessary to tweak
+  //
+  // it might make sense for you to set it manually if you have an idea of
+  // where in the search space the solution might be
+  // this might cause it to converge faster
   maxRandVal: undefined,
   minRandVal: undefined,
 }
@@ -362,13 +390,13 @@ Measures the value of a candidate solution. The algorithm will perform well *if*
 
 One of the two ways candidate solutions are modified. Crossover is all
 about **recombination**. It is a **binary operation** that takes two
-candidates and selects half genes from one parent and the other half
+candidates and selects a portion of genes from one parent and the rest
 from the other.
 
 In an ideal scenario, you would inherit genes from fit individuals.
 However, if you do that too often, you will loose novelty and you the
 algorithm will get stuck very quickly. You can change how often fittest
-candidates (elite) are chosen by changing `minPElite` and `maxPElite`. 
+candidates (elite) are chosen by changing `minPElite` and `maxPElite`.
 
 **NOTE** `nElite` needs to be non-zero for this to work.
 
@@ -406,8 +434,7 @@ which can be used for profiling.
 
 **Emitted Once** <br>
 
-1. `"init"` right after `.search()` is called, just *before* initialisation
-4. `"start"` after `.search()` and all initialisation is complete, before the 1st round
+1. `"start"` after `.search()` and all initialisation is complete, before the 1st round
     - **Object** `opts` the algorithm is run with (you can use it to see if you configured it properly)
 
 **Emitted on Stop Condition Met** <br>
@@ -416,35 +443,22 @@ which can be used for profiling.
 2. `"stuck"` when stuck in a local minimum.
 3. `"rounds"` when `nRounds` limit reached.
 4. `"end"` when finished.
-    - **Int** `roundNumber`
-    - **Int** `msTaken`
-    - **Date** `dateFinished`
+    - **Object** `env`
 
 **Emitted Every Round** <br>
 
 1. `"round"` on every round start (**not** the same as `"rounds"`).
-    - **Int** `rIdx` round number.
-2. `"best"` after all candidates have been evaluated and the best candidate is selected.
-    - **TypedArray | Int** `BestCandidate`
-    - **Float** `scoreOfBestCandidate`
-    - **Float** `improvementSinceLastRound`
-3. `"pMutate"` **Float** 
-4. `"pElite"` **Float** 
-5. `"nMutations"` **Int** 
-6. `"tournamentSize"` **Int** 
-7. `"crossover"` on choosing crossover as opposed to mutation.
-    - **Int** `parent1Idx`
-    - **Int** `parent2Idx`
-    - **Float** `pCrossover`
+    - **Object** `env`
+2. `"op"` on every selection and mutation / crossover operation application
+    - **Object** `env`
 
 Example of extracting data from signals:
 
 ```js
 ga.on('start', opts => console.log('[START] with opts', opts))
-ga.on('best', (_, fitness) => console.log(fitness))
 ga.on('stuck', () => console.log(`[END] stuck`))
 ga.on('timeout', () => console.log(`[END] timeout`))
-ga.on('end', (rIdx, ms) => console.log(`[END] after round #${rIdx} (took ${ms / SEC}sec)`))
+ga.on('end', env => console.log(`[END] after round #${env.rIdx} (took ${env.timeTakenMS / SEC}sec)`))
 ```
 
 More examples [here](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples).
