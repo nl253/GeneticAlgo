@@ -26,23 +26,16 @@
   },
   "files": [
     "README.md",
-    "crossover.js",
     "defaults.js",
-    "nMutations.js",
     "dtype.js",
+    "validate.js",
+    "logging.js",
     "examples/math.js",
     "examples/metrics.js",
     "examples/parallel.js",
     "examples/simple.js",
     "index.js",
-    "initPop.js",
-    "isFinished.js",
-    "mutate.js",
-    "pElite.js",
-    "pMutate.js",
-    "score.js",
-    "tournament.js",
-    "tournamentSize.js"
+    "score.js"
   ],
   "homepage": "https://github.com/nl253/GeneticAlgo-JS",
   "keywords": [

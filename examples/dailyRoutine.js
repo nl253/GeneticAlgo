@@ -7,7 +7,7 @@
  *
  * A good plan will:
  *
- * 1. interleave physically and mentally demanding activities 
+ * 1. interleave physically and mentally demanding activities
  * 2. allow for activities that help to recover mental and physical energy
  * 3. not repeat the same activities
  * 4. not allow for high level of tiredness
@@ -171,7 +171,7 @@ const TASKS = [
  */
 function mutate({ offset, pop, nGenes }) {
   const g1 = Math.floor(Math.random() * nGenes);
-  let g2; 
+  let g2;
   do { g2 = Math.floor(Math.random() * nGenes); } while (g1 === g2);
   const tmp = pop[offset + g1];
   const tmp2 = pop[offset + g2];
@@ -234,7 +234,7 @@ function fitness(cand) {
       score += delta;
       msg += `penalised physical energy by ${delta.toFixed(2)} because <0`;
     } else {
-      const delta = physicalE;
+      const delta = Math.abs(mentalE - physicalE) * 2; // when 1 is high, 2 is low
       score += delta;
       msg += `added ${delta.toFixed(2)} for physical energy`;
     }
@@ -242,12 +242,12 @@ function fitness(cand) {
       const delta = -(mentalE - 1) * 4;
       score += delta;
       msg += `, penalised mental energy by ${delta.toFixed(2)} because >1`;
-    } else if (mentalE < 0) { 
+    } else if (mentalE < 0) {
       const delta = (mentalE - 0.1) * 3;
       score += delta;
       msg += `, penalised mental energy by ${delta.toFixed(2)} because <0`;
     } else {
-      const delta = mentalE;
+      const delta = Math.abs(mentalE - physicalE) * 2; // when 1 is high, 2 is low
       score += delta;
       msg += `, added ${delta.toFixed(2)} score for mental energy`;
     }
@@ -281,7 +281,7 @@ const ga = new GA(fitness, TASKS.length, 'u8', {
   mutate,
   timeOutMS: 30 * 1000,
   pMutate: () => 1.0,
-  debug: 1,
+  log: 1,
   emitFittest: true,
 });
 

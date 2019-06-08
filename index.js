@@ -1,391 +1,405 @@
-/* eslint-disable sort-keys,global-require,no-magic-numbers,complexity,max-lines,no-undefined */
+/* eslint-disable sort-keys,global-require,no-magic-numbers,complexity,max-lines,no-undefined,null,null,key-spacing,no-multi-spaces */
 /**
- * @typedef {Object} Opts
- * @property {!Boolean} validateFitness
- * @property {!Number} maxNMutations
- * @property {!Number} maxPElite
- * @property {!Number} maxRandVal
- * @property {!Number} minImprove
- * @property {!Number} minNMutations
- * @property {!Number} minPElite
- * @property {!Number} minRandVal
- * @property {!Number} minTournamentSize
- * @property {!Number} nElite
- * @property {!Number} nGenes
- * @property {!Number} nRounds
- * @property {!Number} nTrack
- * @property {!Number} popSize
- * @property {!Number} timeOutMS
- * @property {!String} dtype
+ * TODO keep track of old scores for every objective
+ * TODO algorithms is stuck if it makes no progress on all objectives
+ * TODO better handling of isFinished
+ * TODO compute improvement whilst considering all objectives
+ * TODO rethink the require architecture
+ *
+ * 1. Have an option to replace function such as getPopulation so that the user of the API can have custom initalisation.
+ * 2. Have the option to set static and dynamic values for parameters.
+ * 3. For each option you can specify a constant, a [min, max] range or you may not specify it and a default will be chosen.
+ *
+ * @typedef {function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} FitnessFunct
+ * @typedef {Float64Array|Float32Array|Int32Array|Int16Array|Int8Array|Uint32Array|Uint16Array|Uint8Array} TypedArray
  */
+const util              = require('util');
+const { EventEmitter }  = require('events');
 
-/**
- * @typedef {Opts} Env
- * @property {!Function} f
- * @property {!Number} nBits
- * @property {!Number} rIdx
- * @property {!Number} startTm
- * @property {!TypedArray} pop
- * @property {!Uint32Array} candIdxs
- * @property {?Number} maxScoreIdx
- * @property {?Number} maxScoreIdxPrev
- * @property {?Number} timeTakenMS
- * @property {Float64Array} maxScores
- * @property {Float64Array} scores
- */
+const arr               = require('./dtype');
+const registerLogging   = require('./logging');
 
-/**
- * @typedef {Env} EnvLoop
- * @property {!Number} cIdx
- * @property {!Number} nMutations
- * @property {!Number} offset
- * @property {!Number} pMutate
- * @property {!Number} ptr
- */
-
-const util = require('util');
-const { EventEmitter } = require('events');
-
-const SEC = 1000;
-const bitRegex = /8|16|32|64/;
-// eslint-disable-next-line no-unused-vars
-// noinspection JSUnusedLocalSymbols
-const { DTYPES,  f32, f64, u8, u16, u32, i8, i16, i32 } = require('./dtype');
-const { MIN_POPSIZE, MIN_NTRACK, MIN_NELITE } = require('./defaults');
-
-const DEFAULTS = {
-  // functions for parameters dynamically computed during runtime
-  crossover: require('./crossover'),
-  initPop: require('./initPop'),
-  isFinished: require('./isFinished'),
-  mutate: require('./mutate'),
-  nMutations: require('./nMutations'),
-  pElite: require('./pElite'),
-  pMutate: require('./pMutate'),
-  select: require('./tournament'),
-  tournamentSize: require('./tournamentSize'),
-
-  emitFittest: false,      // emit best candidate or index of best candidate
-
-  minPElite: 0.01,
-  maxPElite: 0.2,
-
-  minTournamentSize: 0.01,
-  maxTournamentSize: 0.04,
-
-  minRandVal: null,       // guess
-  maxRandVal: null,       // guess
-
-  minNMutations: 1,
-  maxNMutations: null,    // guess based on nGenes
-
-  minImprove: 1E-6,
-  nElite: 0.2,
-  nRounds: 1E6,
-  nTrack: 100,
-  popSize: 300,
-  score: null,            // use default scoring procedure
-  timeOutMS: 30 * SEC,
-  validateFitness: false, // check if NaN returned
-
-  debug: 0, // log
+const DEFAULT_OPTS = {
+  // search space bounds (guess from dtype)
+  randVal: [undefined, undefined],
+  minImprove:                1E-6,
+  nRounds:                    1E6,
+  nTrack:                     100,
+  popSize:                    300,
+  timeOutMS:             30 * 1000 /* 30 SEC */,
+  // check if NaN returned
+  validateFitness:          false,
+  // emit best candidate or index of best candidate
+  emitFittest:              false,
+  logLvl:                       0,
 };
 
 class GeneticAlgorithm extends EventEmitter {
   /**
-   * @param {!function((Uint8Array|Uint16Array|Uint32Array|Int32Array|Int16Array|Int8Array|Float64Array|Float32Array)): !Number} fitness
+   * @param {!FitnessFunct|!Array<!FitnessFunct>} fitness
    * @param {!Number} nGenes
    * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
-   * @param {{score: function(!Env), mutate: function(!EnvLoop), crossover: function(!EnvLoop), initPop: function(!Env), isFinished: function(!Env): (!String|!Boolean), select: function(!EnvLoop): !Number, tournamentSize: function(!EnvLoop): !Number, pMutate: function(!EnvLoop): !Number, nMutations: function(!EnvLoop): !Number, pElite: function(!EnvLoop): !Number, maxRandVal: !Number, minRandVal: !Number, nElite: !Number, minImprove: !Number, maxNMutations: !Number, minNMutations: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number, minNMutations: !Number, maxNMutations: !Number, minPElite: !Number, maxPElite: !Number, minTournamentSize: !Number, maxTournamentSize: !Number, emitFittest: ?Boolean, nRounds: !Number}} [opts]
+   * @param {{score: function(), mutate: function(), crossover: function(), getPop: function(), isFinished: function(): (!String|!Boolean), select: function(): !Number, tournamentSize: !Number, pMutate: function(): !Number, nMutations: !Number, pElite: !Number, maxRandVal: !Number, nElite: !Number, minImprove: !Number, maxNMutations: !Number, popSize: !Number, timeOutMS: !Number, nTrack: !Number, emitFittest: ?Boolean, nRounds: !Number}} [opts]
+   * @param {Object<String, function>} functs
    */
-  constructor(fitness, nGenes, dtype, opts = {}) {
+  constructor(fitness, nGenes, dtype = 'f64', opts = {}, functs = {}) {
     super();
 
-    // validation on `f`, `nGenes` and `dtype`
-    for (const v of ['fitness', 'dtype', 'nGenes']) {
-      if (eval(v) === undefined) {
-        throw new Error(`you MUST set ${v}`);
-      }
+    // require('./validate')(fitness, nGenes, dtype, opts);
+    Object.assign(this, Object.assign(Object.assign({}, DEFAULT_OPTS), opts));
+    Object.assign(this, functs);
+
+    // multi-objective optimisation
+    // allow for many fitness functions
+    if (fitness.constructor.name === 'Array') {
+      this.fitness = fitness;
+    } else {
+      this.fitness = [fitness];
     }
 
-    if (nGenes.constructor.name !== 'Number' || !Number.isInteger(nGenes)) {
-      throw new Error('nGenes MUST be an Int');
-    }
-
-    if (nGenes < 1) {
-      throw new Error('nGenes MUST be at least 1');
-    }
-
-    if (!DTYPES.has(dtype)) {
-      throw new Error(`unrecognised dtype "${dtype}", choose from: ${Array.from(DTYPES).join(', ')}`);
-    }
-
-    if (fitness.constructor.name !== 'Function') {
-      throw new Error(`fitness function must be a Function`);
-    }
-
-    this.fitness = fitness;
     this.nGenes = nGenes;
-    this.dtype = dtype;
-    this.nBits = parseInt(bitRegex.exec(dtype)[0]);
+    this.dtype  = dtype;
+    this.nBits  = parseInt(/8|16|32|64/.exec(dtype)[0]);
+    this.rIdx   = 0;
+    this.ptr    = 0;
+    this.offset = 0;
 
-    // validation on `opts`
+    // fitness score for every objective for every candidate
+    this.scores = Array(this.fitness.length)
+      .fill(0)
+      .map(() => arr.f64(this.popSize));
 
-    /**
-     * @param {*} v value
-     * @param {!Function} p predicate
-     * @param {!String} msg
-     */
-    const assert = (v, p, msg) => {
-      if (opts[v] !== undefined && !p(opts[v])) {
-        throw new Error(msg);
+    // scores of fittest candidates from last nTrack rounds
+    // metric of improvement
+    this.maxScores = Array(this.fitness.length)
+      .map(() => arr.f64(this.nTrack));
+
+    // used as circular buffer
+    this.maxScoreIdx     = [];
+    this.maxScoreIdxPrev = [];
+
+    // indexes of candidates
+    // re-sorted on each round as opposed to resorting `pop`
+    this.candIdxs = arr.u32(this.popSize).map((_, idx) => idx);
+
+    this.registerGetter('nElite', opts.nElite, [0.1, 0.3], this.popSize);
+    this.registerGetter('pElite', opts.pElite, [0.1, 0.2], this.popSize);
+    this.registerGetter('tournamentSize', opts.tournamentSize, [2, 2 + Math.floor(this.popSize * 0.03)], this.popSize);
+    // default to a very small value of maxNMutations based on nGenes
+    this.registerGetter('nMutations', opts.nMutations, [1, 1 + Math.floor(Math.log2(nGenes) / 2)], nGenes);
+    // this.registerGetter('pMutate', opts.pMutate, [0.01, 0.5], nGenes);
+
+    // intelligently compute min and max bounds of search space based on `dtype`
+    if (this.randVal[1] === undefined) {
+      if (dtype.startsWith('f')) {
+        this.randVal[1] = (3.4 * (10 ** 38) - 1) / 1E4;
+      } else if (dtype.startsWith('i')) {
+        this.randVal[1] = 2 ** (this.nBits - 1) - 1;
+      } else if (dtype.startsWith('u')) {
+        this.randVal[1] = 2 ** this.nBits - 1;
       }
-    };
-
-    const assNum = vName => assert(vName, n => n.constructor.name === 'Number', `${vName} must be a Number`);
-    // const assProb = vName => assert(vName, p => p >= 0 && p <= 1, `${vName} is a probability so it MUST be BETWEEN 0 AND 1`);
-    const assPos = vName => assert(vName, val => val >= 0, `${vName} MUST be positive`);
-    const assInt = vName => assert(vName, n => Number.isInteger(n), `${vName} MUST be an integer`);
-    // const assFloat = vName => assert(vName, n => !Number.isInteger(n), `${vName} MUST be a float`);
-    const assLTE = (vName, n) => assert(vName, val => val <= n, `${vName} MUST be less than or equal to ${n}`);
-    // const assLE = (vName, n) => assert(vName, val => val < n, `${vName} MUST be less than ${n}`);
-    const assGTE = (vName, n) => assert(vName, val => val >= n, `${vName} MUST be greater than or equal to ${n}`);
-    // const assGT = (vName, n) => assert(vName, val => val > n, `${vName} MUST be greater than ${n}`);
-
-    for (const vName of [
-      'debug',
-      'maxNMutations',
-      'minImprove',
-      'minNMutations',
-      'nElite',
-      'nRounds',
-      'nTrack',
-      'popSize',
-      'timeOutMS',
-    ]) {
-      assNum(vName);
-      assPos(vName);
     }
-
-    for (const vName of [
-      'debug',
-      'maxNMutations',
-      'minNMutations',
-      'nRounds',
-      'nTrack',
-      'popSize',
-      'timeOutMS',
-    ]) {
-      assNum(vName);
-      assInt(vName);
-    }
-
-    assGTE('popSize', MIN_POPSIZE);
-    assGTE('nTrack', MIN_NTRACK);
-
-    if (opts.nElite !== undefined && opts.popSize !== undefined && opts.nElite > opts.popSize) {
-      throw new Error('nElite CANNOT be greater than popSize');
-    }
-
-    assert('nElite', nElite => Number.isInteger(nElite) || nElite <= 1, 'nElite must be EITHER an Int specifying the number of elite candidate OR a ratio, a Float between 0 and 1');
-    assert('nElite', nElite => !Number.isInteger(nElite) || nElite >= MIN_NELITE, `nElite MUST be a ratio 0..1 OR an in greater than or equal to ${MIN_NELITE}`);
-
-    assLTE('minNMutations', nGenes);
-    assGTE('minNMutations', 1);
-
-    assert('minRandVal', minRandVal => !dtype.startsWith('u') || minRandVal >= 0, 'minRandVal CANNOT be negative when using unsigned integers (UintArray)');
-    if (opts.minRandVal !== undefined && opts.maxRandVal !== undefined && opts.minRandVal > opts.maxRandVal) {
-      throw new Error('minRandVal CANNOT be greater than `maxRandVal`');
-    }
-
-    for (const k of Object.keys(opts)) {
-      if (DEFAULTS[k] === undefined) {
-        throw new Error(`unrecognized option ${k}`);
+    if (this.randVal[0] === undefined) {
+      if (dtype.startsWith('f')) {
+        this.randVal[0] = (1.2 * (10 ** -38)) / 1E4;
+      } else if (dtype.startsWith('i')) {
+        this.randVal[0] = -(2 ** (this.nBits - 1)) + 1;
+      } else if (dtype.startsWith('u')) {
+        this.randVal[0] = 0;
       }
     }
 
-    Object.assign(
-      this,
-      Object.assign(
-        Object.assign({}, DEFAULTS),
-        opts,
-      ),
-    );
-
-    if (this.score === null) {
+    if (this.score === undefined) {
       this.score = require('./score')(this.validateFitness);
     }
 
-    // resolve ratio
-    if (this.nElite < 1) {
-      this.nElite = Math.floor(this.nElite * this.popSize);
-    }
+    this.pop = this.getPop();
+    registerLogging(this.logLvl, this);
+  }
 
-    if (this.minPElite === null) {
-      this.minPElite = this.nElite / this.popSize;
-    }
-
-    if (this.maxPElite === null) {
-      this.maxPElite = this.minPElite;
-    }
-
-    if (this.minTournamentSize < 1) {
-      this.minTournamentSize = 
-        // tournament size min = 2
-        Math.min(2, 
-          // resolve ratio
-          Math.floor(this.minTournamentSize * this.popSize));
-    }
-
-    // resolve ratio
-    if (this.maxTournamentSize < 1) {
-      this.maxTournamentSize = Math.max(this.minTournamentSize, Math.floor(this.maxTournamentSize * this.popSize));
-    }
-
-    // default to a very small value of maxNMutations based on nGenes
-    if (this.maxNMutations === null) {
-      this.maxNMutations = this.minNMutations + Math.floor(Math.log2(nGenes) / 2);
-    }
-
-    // intelligently compute min and max bounds of search space based on `dtype`
-    if (this.maxRandVal === null) {
-      if (dtype.startsWith('f')) {
-        this.maxRandVal = (3.4 * (10 ** 38) - 1) / 1E4;
-      } else if (dtype.startsWith('i')) {
-        this.maxRandVal = 2 ** (this.nBits - 1) - 1;
-      } else if (dtype.startsWith('u')) {
-        this.maxRandVal = 2 ** this.nBits - 1;
+  /**
+   * Initialise population.
+   *
+   * @returns {!TypedArray} pop
+   * @private
+   */
+  getPop() {
+    const pop = arr[this.dtype](this.popSize);
+    for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+      const offset = cIdx * this.nGenes;
+      for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
+        // special treatment for unsigned (minRandVal is 0) to prevent too many zeroes
+        if (this.dtype.startsWith('u')) {
+          pop[offset + gIdx] = Math.floor(Math.random() * this.randVal[1]);
+        } else {
+          pop[offset + gIdx] = Math.floor(Math.random() * (Math.random() < 0.5 ? this.randVal[1] : this.randVal[0]));
+        }
       }
     }
-    if (this.minRandVal === null) {
-      if (dtype.startsWith('f')) {
-        this.minRandVal = (1.2 * (10 ** -38)) / 1E4;
-      } else if (dtype.startsWith('i')) {
-        this.minRandVal = -(2 ** (this.nBits - 1)) + 1;
-      } else if (dtype.startsWith('u')) {
-        this.minRandVal = 0;
+    // eslint-disable-next-line no-magic-numbers
+    return pop;
+  }
+
+  /**
+   * @returns {!Boolean|'stuck'|'rounds'|'timeout'}
+   * @private
+   */
+  isFinished() {
+    let disDiff = 0;
+    for (let i = 1; i < this.maxScoreIdx; i++) {
+      disDiff += this.maxScores[i] - this.maxScores[i - 1];
+    }
+    for (let i = this.maxScoreIdx + 2; i < this.nTrack; i++) {
+      disDiff += this.maxScores[i] - this.maxScores[i - 1];
+    }
+    // diff between lst and fst
+    disDiff += this.maxScores[this.nTrack - 1] - this.maxScores[0];
+
+    if (disDiff < this.minImprove) {
+      this.emit('stuck');
+      return true;
+    } else if (this.rIdx >= this.nRounds) {
+      this.emit('rounds');
+      return true;
+    } else if (this.timeTakenMS >= this.timeOutMS) {
+      this.emit('timeout');
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Sort candIdxs.
+   * @private
+   */
+  reorder() {
+    // sort candidates based on fitness (1st is most fit, last is least fit)
+    this.candIdxs.sort((cIdx1, cIdx2) => {
+      let score1 = 0;
+      let score2 = 0;
+      // candidate #1 is better than #2 when it dominates across more objectives
+      for (const objectiveScores of this.scores) {
+        if (objectiveScores[cIdx1] > objectiveScores[cIdx2]) {
+          score1++;
+        } else if (objectiveScores[cIdx1] < objectiveScores[cIdx2]) {
+          score2++;
+        }
+      }
+      return score1 > score2 ? -1 : score1 < score2 ? 1 : 0;
+    });
+  }
+
+  /**
+   * @returns {?Number} time taken in ms
+   * @private
+   */
+  get timeTakenMS() {
+    return this.startTm - Date.now();
+  }
+
+  /**
+   * @param {!Array<!Number>} pair
+   * @param {!Number} [percentageOf]
+   * @returns {function(): !Number} supplier
+   * @private
+   */
+  getLinearSupplier(pair, percentageOf) {
+    if (percentageOf !== undefined) {
+      return this.getLinearSupplier(pair.map(x => x < 1.0 ? x * percentageOf : x));
+    } else {
+      return () => pair[0] + (this.timeTakenMS / this.timeOutMS) * (pair[1] - pair[0]);
+    }
+  }
+
+  /**
+   * @param {!String} name
+   * @param {?Array|?Number|undefined} val
+   * @param {?Array|?Number|undefined} fallback
+   * @param {!Number} [percentageOf]
+   * @private
+   */
+  registerGetter(name, val, fallback, percentageOf) {
+    if (val === undefined || val === null) {
+      this.registerGetter(name, fallback, undefined, percentageOf);
+    } else if (val.constructor.name === 'Array') {
+      if (val[1] === undefined) {
+        this.registerGetter(name, val[0], fallback, percentageOf);
+      } else {
+        Object.defineProperty(this, name, { get: this.getLinearSupplier(val, percentageOf) });
+      }
+    } else if (percentageOf !== undefined) {
+      this.registerGetter(name, fallback, Math.floor(val * percentageOf));
+    } else {
+      this[name] = val;
+    }
+  }
+
+  /**
+   * @returns {'mutate'|'crossover'} op
+   * @private
+   */
+  get op() {
+    return Math.random() < this.pMutate ? 'mutate' : 'crossover';
+  }
+
+  /**
+   * Tournament selection (selection pressure depends on tournamentSize).
+   *
+   * @returns {!Number} index of selected candidate
+   * @private
+   */
+  select() {
+    const idxs = new Uint32Array(new ArrayBuffer(4 * this.tournamentSize));
+    if (Math.random() < this.pElite) {
+      for (let i = 0; i < this.tournamentSize; i++) {
+        idxs[i] = this.candIdxs[Math.floor(Math.random() * this.nElite)];
+      }
+    } else {
+      for (let i = 0; i < this.tournamentSize; i++) {
+        idxs[i] = this.candIdxs[this.nElite + Math.floor(Math.random() * (this.popSize - this.nElite))];
       }
     }
-    if (this.debug > 0) {
-      this.on('start', env => console.log('started genetic algo at', new Date(), 'with opts', env));
-      this.on('end', env => console.log('finished running genetic algo at', new Date(), `took ${env.timeTakenMS / 1000}sec, did ${env.rIdx} rounds`));
-      for (const reason of ['stuck', 'rounds', 'timeout']) {
-        this.on(reason, () => console.log(`[${reason}]`));
+    let bestIdx = idxs[0];
+    let bestScore = this.scores[bestIdx];
+    for (let i = 1; i < this.tournamentSize; i++) {
+      const idx = idxs[i];
+      if (this.scores[idx] > bestScore) {
+        bestIdx = idx;
+        bestScore = this.scores[idx];
       }
-      if (this.debug >= 2) {
-        this.on('op', env => console.log(env.op.padStart('crossover'.length), `(p = ${(env.op === 'crossover' ? (1 - env.pMutate) : env.pMutate).toFixed(2)})`, env.op === 'crossover' ? `on ${`#${env.pIdx1}`.padStart(4)} & ${`#${env.pIdx2}`.padStart(4)}` : `on ${`#${env.ptr}`.padStart(4)} ${' '.repeat(7)}(${env.nMutations} mutations)`));
-      }
-      if (this.debug >= 1) {
-        this.on('score', env => console.log(`[round ${`#${env.rIdx}`.padStart(6)}] best cand = ${`#${env.bestIdx}`.padStart(4)}, best score = ${env.bestScore.toString().padStart(15)}, improvement = ${env.improvement.toString().padStart(12)}`));
-      }
+    }
+    return bestIdx;
+  }
+
+  /**
+   * Default mutate function.
+   * @private
+   */
+  mutate() {
+    const randValUpper = this.randVal[1] - this.randVal[0];
+    for (let i = 0; i < this.nMutations; i++) {
+      this.pop[this.offset + Math.floor(Math.random() * this.nGenes)] = this.randVal[0] + Math.floor(Math.random() * randValUpper);
+    }
+  }
+
+  /**
+   * You want to apply mutation to the fittest BUT crossover to the least fit.
+   * To do that, make the probability a function of the position in the array.
+   *
+   * You also want to increase the p of mutation as you approach the end of running the algorithm
+   * meaning as timeTakenMS approaches timeOutMS, pMutate approaches 1.0.
+   * @private
+   */
+  get pMutate() {
+    return 0.8 * (1 - ((this.ptr - this.nElite) / (this.popSize - this.nElite))) * (1 - (this.timeTakenMS / this.timeOutMS));
+  }
+
+  // /**
+  //  * Compute the number of unique mutations (on different genes).
+  //  *
+  //  * @returns {!Number} number of mutations
+  //  */
+  // get nMutations() {
+  //   const { minNMutations, maxNMutations, timeTakenMS, timeOutMS } = this;
+  //   // at first, carry out more mutations (more exploration)
+  //   // later, exploit more and alter only 1 dimension
+  //   // so that you don't stray too far off the fitness peak
+  //   return minNMutations + Math.floor(Math.random() * (maxNMutations - minNMutations) * (1 - (timeTakenMS / timeOutMS)));
+  // }
+
+  /**
+   * Default crossover function.
+   */
+  crossover() {
+    // avoid positional bias
+    // don't use cross-over point, otherwise genes CLOSE to each other will be more likely to be inherited
+    const offset1 = this.select() * this.nGenes;
+    const offset2 = this.select() * this.nGenes;
+    for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
+      this.pop[this.offset + gIdx] = this.pop[(Math.random() < 0.5 ? offset1 : offset2) + gIdx];
     }
   }
 
   * search() {
-    /** @type {!Env} */
-    const env = Object.assign({
-      // round number
-      rIdx: 0,
-      startTm: Date.now(),
-      timeTakenMS: null,
-
-      // concatenation of all candidates
-      // each candidate with index `cIdx` is a subarray from (cIdx * nGenes) to ((cIdx + 1) * nGenes)
-      pop: eval(this.dtype)(this.popSize * this.nGenes),
-
-      // indexes of candidates
-      // re-sorted on each round as opposed to resorting `pop`
-      candIdxs: u32(this.popSize).map((_, idx) => idx),
-
-      // fitness score for every corresponding candidate
-      scores: f64(this.popSize),
-
-      // scores of fittest candidates from last nTrack rounds
-      // metric of improvement
-      maxScores: f64(this.nTrack), // used as circular buffer
-      maxScoreIdx: null,
-      maxScoreIdxPrev: null,
-    }, this);
+    this.startTm = Date.now();
 
     // ensure it doesn't finish during first nTrack rounds
-    env.maxScores[this.nTrack - 1] = Infinity;
+    for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
+      this.maxScores[fIdx][this.nTrack - 1] = Infinity;
+    }
 
-    this.initPop(env);
-
-    this.emit('start', env);
+    this.emit('start', this);
 
     // bootstrap elite scores
-    this.score(env);
-
-    // sort candidates based on fitness (1st is most fit, last is least fit)
-    env.candIdxs.sort((cIdx1, cIdx2) => env.scores[cIdx1] > env.scores[cIdx2] ? -1 : 1);
+    this.score();
+    this.reorder();
 
     while (true) {
-      env.maxScoreIdx = env.rIdx % this.nTrack; // index in an array acting as cricular buffer
-      env.timeTakenMS = Date.now() - env.startTm;
+      this.maxScoreIdx = this.rIdx % this.nTrack; // index in an array acting as circular buffer
+      this.emit('round', this);
 
-      this.emit('round', env);
-
-      const maybeDoneSignal = this.isFinished(env);
-      if (maybeDoneSignal !== false) {
-        this.emit(maybeDoneSignal);
+      if (this.isFinished()) {
         break;
       }
 
-      ++env.rIdx;
+      ++this.rIdx;
 
-      this.score(env);
+      this.score();
 
       // re-sort candidates based on fitness (1st is most fit, last is least fit)
-      env.candIdxs.sort((cIdx1, cIdx2) => env.scores[cIdx1] > env.scores[cIdx2] ? -1 : 1);
+      this.reorder();
 
-      // can be disabled for better performance which causes it to return the idx of fittest candidate
+      // can be disabled for better performance
       if (this.emitFittest) {
         // fittest candidate
-        env.best = env.pop.subarray(env.candIdxs[0] * this.nGenes, (env.candIdxs[0] + 1) * this.nGenes);
+        this.best = this.pop.subarray(this.candIdxs[0] * this.nGenes, (this.candIdxs[0] + 1) * this.nGenes);
       }
 
-      env.bestIdx = env.candIdxs[0];
-      // fitness of best candidate
-      // store in cirular buffer (simulated using array and maxScoreIdx)
-      env.bestScore = env.maxScores[env.maxScoreIdx] = env.scores.reduce((s1, s2) => Math.max(s1, s2));
-      // improvement (difference between last best score and current fittest candidate score)
-      env.improvement = env.maxScores[env.maxScoreIdx] - env.maxScores[env.maxScoreIdxPrev];
-      env.maxScoreIdxPrev = env.maxScoreIdx;
+      this.bestIdx = this.candIdxs[0];
 
-      this.emit('score', env);
+      // fitness of best candidate
+      // store in circular buffer (simulated using array and maxScoreIdx)
+      this.bestScore = this.maxScores[this.maxScoreIdx] = [];
+      for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
+        this.bestScore[fIdx] = this.maxScores[this.maxScoreIdx[fIdx]] += this.scores[fIdx].reduce((s1, s2) => Math.max(s1, s2));
+      }
+
+      // improvement for every objective (difference between last best score and current fittest candidate score)
+      for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
+        this.improvement[fIdx] = this.maxScores[fIdx][this.maxScoreIdx[fIdx]] - this.maxScores[fIdx][this.maxScoreIdxPrev[fIdx]];
+      }
+
+      this.maxScoreIdxPrev = this.maxScoreIdx;
+
+      this.emit('score', this);
 
       /* go over non-elite units (elitism - leave best units unaltered)
        *
        * NOTE: order of candIdxs is as follows: [best, 2nd best, ..., worst] */
-      for (env.ptr = this.nElite; env.ptr < this.popSize; env.ptr++) {
-        env.cIdx = env.candIdxs[env.ptr];
-        env.offset = env.cIdx * this.nGenes;
-        env.pElite = this.pElite(env);
-        env.pMutate = this.pMutate(env);
-        if (Math.random() < env.pMutate) {
-          env.op = 'mutate';
-          env.nMutations = this.nMutations(env);
-          this.mutate(env);
+      for (this.ptr = this.nElite; this.ptr < this.popSize; this.ptr++) {
+        this.cIdx = this.candIdxs[this.ptr];
+        this.offset = this.cIdx * this.nGenes;
+        if (this.op === 'mutate') {
+          this.mutate();
         } else {
-          env.op = 'crossover';
-          env.tournamentSize = this.tournamentSize(env);
-          env.pIdx1 = this.select(env);
-          env.pIdx2 = this.select(env);
-          this.crossover(env);
+          this.crossover();
         }
-        this.emit('op', env);
+        this.emit('op', this);
       }
     }
 
-    this.emit('end', env);
+    this.emit('end', this);
 
     for (let ptr = 0; ptr < this.popSize; ptr++) {
-      const offset = this.nGenes * env.candIdxs[ptr];
-      yield env.pop.subarray(offset, offset + this.nGenes);
+      const offset = this.nGenes * this.candIdxs[ptr];
+      yield this.pop.subarray(offset, offset + this.nGenes);
     }
   }
 
+  /**
+   * @returns {!String}
+   */
   [util.inspect.custom]() {
     return this.toString();
   }
@@ -395,27 +409,6 @@ class GeneticAlgorithm extends EventEmitter {
    */
   toString() {
     return `GeneticAlgorithm ${util.inspect(this.opts)}`;
-  }
-
-  /**
-   * @returns {!Opts} opts
-   */
-  get opts() {
-    return {
-      dtype: this.dtype,
-      maxNMutations: this.maxNMutations,
-      maxRandVal: this.maxRandVal,
-      minImprove: this.minImprove,
-      minNMutations: this.minNMutations,
-      minRandVal: this.minRandVal,
-      nElite: this.nElite,
-      nGenes: this.nGenes,
-      nRounds: this.nRounds,
-      nTrack: this.nTrack,
-      popSize: this.popSize,
-      timeOutMS: this.timeOutMS,
-      validateFitness: this.validateFitness,
-    };
   }
 }
 
