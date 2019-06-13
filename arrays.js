@@ -3,7 +3,7 @@ const bitRegex = /8|16|32|64/;
 /**
  * Get typed array constructor from string dtype.
  *
- * @param {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} dtype
+ * @param {!DType} dtype
  * @returns {Float32ArrayConstructor|Float64ArrayConstructor|Int8ArrayConstructor|Int16ArrayConstructor|Int32ArrayConstructor|Uint8ArrayConstructor|Uint16ArrayConstructor|Uint32ArrayConstructor|never} constructor
  * @private
  */

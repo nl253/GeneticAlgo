@@ -6,6 +6,7 @@
   },
   "description": "Genetic algorithm",
   "devDependencies": {
+    "@types/node": "^12.0.8",
     "eslint": "^5.16.0",
     "eslint-config-airbnb": "^17.1.0",
     "eslint-plugin-compat": "^3.1.1",
@@ -26,16 +27,13 @@
   },
   "files": [
     "README.md",
-    "defaults.js",
-    "dtype.js",
-    "validate.js",
+    "arrays.js",
     "logging.js",
     "examples/math.js",
     "examples/metrics.js",
     "examples/parallel.js",
     "examples/simple.js",
-    "index.js",
-    "score.js"
+    "index.js"
   ],
   "homepage": "https://github.com/nl253/GeneticAlgo-JS",
   "keywords": [
