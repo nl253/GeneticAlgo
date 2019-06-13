@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "module": "umd",
+    "target": "es5",
+    "strict": true,
+    "allowJs": true,
+    "alwaysStrict": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "noImplicitAny": true,
+    "listEmittedFiles": true,
+    "removeComments": true,
+    "newLine": "LF",
+    "outDir": ".",
+    "pretty": true,
+    "watch": false,
+    "listFiles": true,
+    "lib": [
+      "es5",
+      "es6",
+      "es7"
+    ],
+    "sourceMap": false
+  },
+  "exclude": [
+    "examples",
+    "node_modules"
+  ]
+}

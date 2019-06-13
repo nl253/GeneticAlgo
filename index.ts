@@ -1,30 +1,12 @@
-/* eslint-disable sort-keys,global-require,no-magic-numbers,complexity,max-lines,no-undefined,null,null,key-spacing,no-multi-spaces */
-/**
- * TODO keep track of old scores for every objective
- * TODO algorithms is stuck if it makes no progress on all objectives
- * TODO better handling of isFinished
- * TODO compute improvement whilst considering all objectives
- * TODO rethink the require architecture
- *
- * 1. Have an option to replace function such as getPopulation so that the user of the API can have custom initialisation.
- * 2. Have the option to set static and dynamic values for parameters.
- * 3. For each option you can specify a constant, a [min, max] range or you may not specify it and a default will be chosen.
- *
- * @typedef {Float64Array|Float32Array|Int32Array|Int16Array|Int8Array|Uint32Array|Uint16Array|Uint8Array} TypedArray
- * @typedef {'f64'|'f32'|'i32'|'i16'|'i8'|'u32'|'u16'|'u8'} DType
- * @typedef {function(TypedArray): !Number} FitnessFunct
- * @typedef {!Array<?Number>|{min: !Number, max: ?Number}|!Number} NumericOpt
- */
 import * as util        from 'util';
 import { EventEmitter } from 'events';
 
-import registerLogging from './logging';
-
-enum Dtype { U32, U16, U8, F64, F32, I32, I16, I8 }
+type Dtype = 'u32' | 'u16' | 'u8' | 'f64' | 'f32' | 'i32' | 'i16' | 'i8';
 
 enum Behaviour { INCREASES, DECREASES, CONSTANT }
 
 type NumOpt = number | [number, number] | { start: number, end: number, whenFit?: Behaviour };
+type NumOptResolved = { start: number, end: number, whenFit: Behaviour };
 type TypedArray =
     Uint8Array
     | Uint16Array
@@ -34,63 +16,72 @@ type TypedArray =
     | Int32Array
     | Float32Array
     | Float64Array;
-type FitnessFunct = (TypedArray) => number;
+type FitnessFunct = (candidate: TypedArray) => number;
 type UserOpts = {
   pElite?: NumOpt,
+  nRounds?: number,
   nElite?: NumOpt,
   tournamentSize?: NumOpt,
   pMutate?: NumOpt,
   nMutations?: NumOpt,
   nTrack?: number,
+  minImprove?: number,
   popSize?: number,
   weights?: Array<number> | TypedArray,
   randValMin?: number,
   randValMax?: number,
   logLvl?: 0 | 1 | 2 | 3,
+  emitFittest?: boolean,
   timeOutMS?: number,
 };
-// type CustomFuncts = {
-//   compare?: (cIdx1: number, cIdx2: number) => number,
-//   isFinished?: (rIdx: number, timeTakenMS: number, improvement: TypedArray) => boolean,
-//   getPop?: (nGenes: number, popSize: number) => TypedArray,
-//   randGeneVal?: (gIdx: number, min: number, max: number) => number,
-//   select?: (cIdx: number, rank: number) => number,
-//   mutate?: (cIdx: number, rank: number) => Array<number> | TypedArray /* gene indexes for mutation */,
-//   crossover?: (cIdx: number, rank: number, parents: Array<number>) => Array<number> | TypedArray,
-// };
+type ResolvedOpts = {
+  nRounds: number,
+  emitFittest: boolean,
+  pElite: NumOpt,
+  nElite: NumOpt,
+  tournamentSize: NumOpt,
+  pMutate: NumOpt,
+  nMutations: NumOpt,
+  minImprove: number,
+  nTrack: number,
+  popSize: number,
+  weights: Array<number> | TypedArray,
+  randValMin: number,
+  randValMax: number,
+  logLvl: 0 | 1 | 2 | 3,
+  timeOutMS: number,
+};
+type CustomFuncts = {
+  compare?: () => number,
+  isFinished?: () => boolean,
+  getPop?: () => TypedArray,
+  select?: () => number,
+  mutate?: () => void,
+  crossover?: () => void,
+};
 
 function getNumOpt(percentageOf: number | undefined, o: NumOpt): { start: number, end: number, whenFit: Behaviour } {
   if (o.constructor.name === 'Number') {
-    // @ts-ignore
-    return getNumOpt(percentageOf, [o, o]);
+    return getNumOpt(percentageOf, <[number, number]>[o, o]);
   } else if (o.constructor.name === 'Array') {
-    // @ts-ignore
-    const [start, end]: [number, number] = o;
-    // @ts-ignore
+    const [start, end]: [number, number] = <[number, number]>o;
     return getNumOpt(percentageOf, { start, end });
-    // @ts-ignore
-  } else if (o.whenFit === undefined) {
-    // @ts-ignore
-    o.whenFit = Behaviour.CONSTANT;
+  } else if ((<NumOptResolved>o).whenFit === undefined) {
+    (<NumOptResolved>o).whenFit = Behaviour.CONSTANT;
     return getNumOpt(percentageOf, o);
-    // @ts-ignore
-  } else if (percentageOf !== undefined && o.start < 1.0) {
-    // @ts-ignore
-    o.start *= percentageOf;
+  } else if (percentageOf !== undefined && (<NumOptResolved>o).start < 1.0) {
+    (<NumOptResolved>o).start *= percentageOf;
     return getNumOpt(percentageOf, o);
-    // @ts-ignore
-  } else if (percentageOf !== undefined && o.end < 1.0) {
-    // @ts-ignore
-    o.end *= percentageOf;
+  } else if (percentageOf !== undefined && (<NumOptResolved>o).end < 1.0) {
+    (<NumOptResolved>o).end *= percentageOf;
     return getNumOpt(percentageOf, o);
   } else {
-    // @ts-ignore
-    return o;
+    return <NumOptResolved>o;
   }
 }
 
 function optToGetter(
-    self: object, name: string, { start, end, whenFit }: { start: number, end: number, whenFit: Behaviour }) {
+    self: any, name: string, { start, end, whenFit }: { start: number, end: number, whenFit: Behaviour }) {
   return () => {
     if (start === end) {
       self[name] = start;
@@ -119,33 +110,33 @@ function optToGetter(
   };
 }
 
+// noinspection JSUnusedGlobalSymbols
 const arrays = {
-  f32: n => new Float32Array(new ArrayBuffer(4 * n)),
-  f64: n => new Float64Array(new ArrayBuffer(8 * n)),
-  i32: n => new Int32Array(new ArrayBuffer(4 * n)),
-  u32: n => new Uint32Array(new ArrayBuffer(4 * n)),
-  i16: n => new Int16Array(new ArrayBuffer(2 * n)),
-  u16: n => new Uint16Array(new ArrayBuffer(2 * n)),
-  i8:  n => new Int8Array(new ArrayBuffer(n)),
-  u8:  n => new Uint8Array(new ArrayBuffer(n)),
+  f32: (n: number) => new Float32Array(new ArrayBuffer(4 * n)),
+  f64: (n: number) => new Float64Array(new ArrayBuffer(8 * n)),
+  i32: (n: number) => new Int32Array(new ArrayBuffer(4 * n)),
+  u32: (n: number) => new Uint32Array(new ArrayBuffer(4 * n)),
+  i16: (n: number) => new Int16Array(new ArrayBuffer(2 * n)),
+  u16: (n: number) => new Uint16Array(new ArrayBuffer(2 * n)),
+  i8:  (n: number) => new Int8Array(new ArrayBuffer(n)),
+  u8:  (n: number) => new Uint8Array(new ArrayBuffer(n)),
 };
 
 class GeneticAlgorithm extends EventEmitter {
-  private readonly DEFAULTS = {
-    minImprove: 1E-6,
-    nRounds:    1E6,
-    nTrack:     100,
-    popSize:    300,
-
-    nElite:         { start: 0.1, end: 0.3 },
-    pElite:         { start: 0.1, end: 0.2, whenFit: Behaviour.DECREASES },
-    pMutate:        { start: 0.01, end: 0.8, whenFit: Behaviour.INCREASES },
-    tournamentSize: { start: 2, end: 10, whenFit: Behaviour.DECREASES },
-
+  private readonly DEFAULT_OPTS = {
+    minImprove:      1E-6,
+    nRounds:         1E6,
+    nTrack:          100,
+    popSize:         300,
+    nElite:          { start: 0.1, end: 0.3 },
+    pElite:          { start: 0.1, end: 0.2, whenFit: Behaviour.DECREASES },
+    pMutate:         { start: 0.01, end: 0.8, whenFit: Behaviour.INCREASES },
+    tournamentSize:  { start: 2, end: 10, whenFit: Behaviour.DECREASES },
     emitFittest:     false, // emit best candidate or index of best candidate
     logLvl:          0,
     timeOutMS:       30 * 1000, // 30 SEC
     validateFitness: false, // check if NaN returned
+    weights:         (<TypedArray|undefined>undefined), // set later
   };
 
   public readonly dtype: Dtype;
@@ -153,23 +144,24 @@ class GeneticAlgorithm extends EventEmitter {
   public readonly fitness: Array<FitnessFunct>;
   public readonly minImprove: number;
   public readonly nBits: 8 | 16 | 32 | 64;
-  public readonly nElite: number;
   public readonly nGenes: number;
-  public readonly popSize: number;
-  public readonly nMutations: number;
   public readonly nRounds: number;
   public readonly nTrack: number;
-  public readonly pElite: number;
-  public readonly pMutate: number;
   public readonly pop: TypedArray;
-  public readonly timeOutMS: number;
-  public readonly tournamentSize: number;
-  public readonly weights: Array<number> | TypedArray;
+  public readonly popSize: number;
   // search space bounds (guess from dtype)
   public readonly randValMax: number;
   public readonly randValMin: number;
+  public readonly timeOutMS: number;
+  public readonly weights: Array<number> | TypedArray;
 
-  public startTm: number;
+  // dynamic getter generation
+  public readonly tournamentSize!: number;
+  public readonly pElite!: number;
+  public readonly pMutate!: number;
+  public readonly nElite!: number;
+  public readonly nMutations!: number;
+
   public readonly idxs: Uint32Array;
   public readonly scores: Array<Float64Array>;
   public readonly bestScores: Float64Array;
@@ -177,6 +169,7 @@ class GeneticAlgorithm extends EventEmitter {
   public readonly bestCandIdxs: Uint32Array;
   public readonly improvement: Array<Float64Array>;
 
+  private startTm: number;
   private cIdx: number;
   private rIdx: number;
   private rank: number;
@@ -185,8 +178,8 @@ class GeneticAlgorithm extends EventEmitter {
       fitness: FitnessFunct | Array<FitnessFunct>,
       nGenes: number,
       dtype: Dtype,
-      opts: UserOpts = {},
-      functs         = {}) {
+      opts: UserOpts       = {},
+      functs: CustomFuncts = {}) {
     super();
     this.nGenes = nGenes;
     this.dtype  = dtype;
@@ -197,75 +190,116 @@ class GeneticAlgorithm extends EventEmitter {
 
     // how important each objective is
     if (opts.weights === undefined) {
-      this.weights = arrays.f64(this.fitness.length).fill(1);
+      this.DEFAULT_OPTS.weights = arrays.f64(this.fitness.length).fill(1);
     }
 
-    Object.assign(opts, this.DEFAULTS);
+    // @ts-ignore
+    const resolvedOpts: ResolvedOpts = Object.assign(Object.assign({}, opts), this.DEFAULT_OPTS);
     Object.assign(this, functs);
 
     // register getters from user config merged with defaults into `this`
-    optToGetter(this, 'nElite', getNumOpt(opts.popSize, opts.nElite));
-    optToGetter(this, 'nMutations', getNumOpt(nGenes, opts.nMutations));
-    optToGetter(this, 'pMutate', getNumOpt(undefined, opts.pMutate));
-    optToGetter(this, 'tournamentSize', getNumOpt(opts.popSize, opts.tournamentSize));
-    optToGetter(this, 'pElite', getNumOpt(undefined, opts.pElite));
+    optToGetter(this, 'nElite', getNumOpt(resolvedOpts.popSize, resolvedOpts.nElite));
+    optToGetter(this, 'nMutations', getNumOpt(nGenes, resolvedOpts.nMutations));
+    optToGetter(this, 'pMutate', getNumOpt(undefined, resolvedOpts.pMutate));
+    optToGetter(this, 'tournamentSize', getNumOpt(resolvedOpts.popSize, resolvedOpts.tournamentSize));
+    optToGetter(this, 'pElite', getNumOpt(undefined, resolvedOpts.pElite));
 
-    this.rIdx      = 0;
-    this.timeOutMS = opts.timeOutMS;
+    this.weights     = resolvedOpts.weights;
+    this.nTrack      = resolvedOpts.nTrack;
+    this.nRounds     = resolvedOpts.nRounds;
+    this.emitFittest = resolvedOpts.emitFittest;
+    this.popSize     = resolvedOpts.popSize;
+    this.minImprove  = resolvedOpts.minImprove;
+    this.timeOutMS   = resolvedOpts.timeOutMS;
+    this.rIdx        = 0;
+    this.startTm     = -Infinity;
+    this.rank        = 0;
+    this.cIdx        = 0;
 
     // indexes of candidates
     // re-sorted on each round as opposed to re-sorting `pop`
-    this.idxs = arrays.u32(opts.popSize).map((_, idx) => idx);
+    this.idxs = arrays.u32(resolvedOpts.popSize).map((_, idx) => idx);
 
     // fitness score for every objective for every candidate
-    this.scores = Array(this.fitness.length).fill(0).map(() => arrays.f64(opts.popSize));
+    this.scores = Array(this.fitness.length).fill(0).map(() => arrays.f64(resolvedOpts.popSize));
 
-    // scores of fittest candidates
-    // metric of improvement
-    this.bestScores     = arrays.f64(this.fitness.length);
+    // scores of fittest candidates for every objective
+    this.bestScores = arrays.f64(this.fitness.length);
+    // previous scores of fittest candidates for every objective
     // needed to compute improvement (previous - current)
     this.bestScoresPrev = arrays.f64(this.fitness.length);
-
-    // keep track of best candidate for every objective
-    this.bestCandIdxs = arrays.u32(this.fitness.length);
 
     // used to stop the algorithm when a plateau is reached
     this.improvement = Array(this.fitness.length).map(() => arrays.f64(this.nTrack));
 
-    // this.registerGetter('tournamentSize', opts.tournamentSize, [2, 2 + Math.floor(this.popSize * 0.03)]);
-    // default to a very small value of maxNMutations based on nGenes
-    // this.nMutations = this.
+    // keep track of best candidate for every objective
+    this.bestCandIdxs = arrays.u32(this.fitness.length);
+
+    if (dtype.endsWith('8')) {
+      this.nBits = 8;
+    } else if (dtype.endsWith('16')) {
+      this.nBits = 16;
+    } else if (dtype.endsWith('32')) {
+      this.nBits = 32;
+    } else {
+      this.nBits = 64;
+    }
 
     // intelligently compute min and max bounds of search space based on `dtype`
-    if (opts.randValMax === undefined) {
-      if (dtype === Dtype.F32 || dtype == Dtype.F64) {
+    if (resolvedOpts.randValMax === undefined) {
+      if (dtype.startsWith('f')) {
         this.randValMax = (3.4 * (10 ** 38) - 1) / 1E4;
-      } else if (dtype === Dtype.I8 || dtype === Dtype.I16 || dtype === Dtype.I32) {
+      } else if (dtype.startsWith('i')) {
         this.randValMax = 2 ** (this.nBits - 1) - 1;
-      } else if (dtype === Dtype.U8 || dtype === Dtype.U16 || dtype === Dtype.U32) {
+      } else /* if (dtype.startsWith('u')) */ {
         this.randValMax = 2 ** this.nBits - 1;
       }
     } else {
-      this.randValMax = opts.randValMax;
+      this.randValMax = resolvedOpts.randValMax;
     }
 
-    if (opts.randValMin === undefined) {
-      if (dtype === Dtype.F32 || dtype == Dtype.F64) {
+    if (resolvedOpts.randValMin === undefined) {
+      if (dtype.startsWith('f')) {
         this.randValMin = (1.2 * (10 ** -38)) / 1E4;
-      } else if (dtype === Dtype.I8 || dtype === Dtype.I16 || dtype === Dtype.I32) {
+      } else if (dtype.startsWith('i')) {
         this.randValMin = -(2 ** (this.nBits - 1)) + 1;
-      } else if (dtype === Dtype.U8 || dtype === Dtype.U16 || dtype === Dtype.U32) {
+      } else /* if (dtype.startsWith('u')) */ {
         this.randValMin = 0;
       }
     } else {
-      this.randValMin = opts.randValMin;
+      this.randValMin = resolvedOpts.randValMin;
     }
 
     this.pop = this.getPop();
-    registerLogging(opts.logLvl, this);
+
+    if (resolvedOpts.logLvl > 0) {
+      this.on('start', env => console.log('started genetic algorithm at', new Date(), 'with opts', env));
+      this.on('end', env => console.log('finished running genetic algorithm at', new Date(),
+                                        `took ${env.timeTakenMS / 1000}sec, did ${env.rIdx} rounds`));
+      for (const reason of ['stuck', 'rounds', 'timeout']) {
+        this.on(reason, () => console.log(`[${reason}]`));
+      }
+    }
+
+    if (resolvedOpts.logLvl > 1) {
+      this.on('score', env => console.log(
+          `[round ${`#${env.rIdx}`.padStart(6)}] best cand = ${`#${env.bestIdx}`.padStart(
+              4)}, best score = ${env.bestScore.toString().padStart(15)}, improvement = ${env.improvement.toString()
+                                                                                             .padStart(12)}`));
+    }
+
+    if (resolvedOpts.logLvl > 2) {
+      this.on('op', env => console.log(env.op.padStart('crossover'.length),
+                                       `(p = ${(env.op === 'crossover' ? (1 - env.pMutate) : env.pMutate).toFixed(2)})`,
+                                       env.op === 'crossover' ? `on ${`#${env.pIdx1}`.padStart(
+                                           4)} & ${`#${env.pIdx2}`.padStart(4)}` : `on ${`#${env.ptr}`.padStart(
+                                           4)} ${' '.repeat(7)}(${env.nMutations} mutations)`));
+    }
   }
 
-  private get timeTakenMS() { return this.startTm - Date.now(); }
+  private get timeTakenMS(): number {
+    return this.startTm - Date.now();
+  }
 
   private getPop(): TypedArray {
     const pop = arrays[this.dtype](this.popSize);
@@ -273,7 +307,7 @@ class GeneticAlgorithm extends EventEmitter {
       const offset = cIdx * this.nGenes;
       for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
         // special treatment for unsigned (minRandVal is 0) to prevent too many zeroes
-        if (this.dtype === Dtype.U32 || this.dtype == Dtype.U16 || this.dtype === Dtype.U8) {
+        if (this.dtype.startsWith('u')) {
           pop[offset + gIdx] = Math.floor(Math.random() * this.randValMax);
         } else {
           pop[offset + gIdx] = Math.floor(Math.random() * (Math.random() < 0.5 ? this.randValMax : this.randValMin));
@@ -281,10 +315,6 @@ class GeneticAlgorithm extends EventEmitter {
       }
     }
     return pop;
-  }
-
-  private randGeneVal(): number {
-    return this.randValMin + (this.randValMax - this.randValMin) * Math.random();
   }
 
   private isFinished(): boolean {
@@ -307,7 +337,9 @@ class GeneticAlgorithm extends EventEmitter {
     if (improvedObjectives === 0) {
       this.emit('stuck');
       return true;
-    } else if (this.rIdx >= this.nRounds) {
+    }
+
+    if (this.rIdx >= this.nRounds) {
       this.emit('rounds');
       return true;
     } else if (this.timeTakenMS >= this.timeOutMS) {
@@ -333,11 +365,6 @@ class GeneticAlgorithm extends EventEmitter {
     return score1 > score2 ? -1 : score1 < score2 ? 1 : 0;
   }
 
-  private reorder(): void {
-    // sort candidates based on fitness (1st is most fit, last is least fit)
-    this.idxs.sort(this.compare);
-  }
-
   private select(): number {
     const { tournamentSize, pElite, nElite } = this;
     const idxs                               = arrays.u32(tournamentSize);
@@ -358,19 +385,11 @@ class GeneticAlgorithm extends EventEmitter {
     return bestIdx;
   }
 
-  private score(): void {
-    for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
-      for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
-        this.scores[fIdx][cIdx] = this.fitness[fIdx](
-            this.pop.subarray(cIdx * this.nGenes, cIdx * this.nGenes + this.nGenes));
-      }
-    }
-  }
-
   private mutate(): void {
     const offset = this.cIdx * this.nGenes;
     for (let i = 0; i < this.nMutations; i++) {
-      this.pop[offset + Math.floor(Math.random() * this.nGenes)] = this.randGeneVal();
+      this.pop[offset + Math.floor(Math.random() * this.nGenes)] = this.randValMin + (this.randValMax - this.randValMin)
+                                                                   * Math.random();
     }
   }
 
@@ -390,14 +409,19 @@ class GeneticAlgorithm extends EventEmitter {
 
     // ensure it doesn't finish during first nTrack rounds
     for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
-      this.bestScores[fIdx][this.nTrack - 1] = Infinity;
+      this.bestScoresPrev[fIdx] = Infinity;
     }
 
     this.emit('start', this);
 
     // bootstrap elite scores
-    this.score();
-    this.reorder();
+    for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
+      for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+        this.scores[fIdx][cIdx] = this.fitness[fIdx](
+            this.pop.subarray(cIdx * this.nGenes, cIdx * this.nGenes + this.nGenes));
+      }
+    }
+    this.idxs.sort(this.compare);
 
     while (true) {
       this.emit('round', this);
@@ -408,10 +432,15 @@ class GeneticAlgorithm extends EventEmitter {
 
       ++this.rIdx;
 
-      this.score();
+      for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
+        for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
+          this.scores[fIdx][cIdx] = this.fitness[fIdx](
+              this.pop.subarray(cIdx * this.nGenes, cIdx * this.nGenes + this.nGenes));
+        }
+      }
 
       // re-sort candidates based on fitness (1st is most fit, last is least fit)
-      this.reorder();
+      this.idxs.sort(this.compare);
 
       // for (let objIdx = 0; objIdx < this.fitness.length; objIdx++) {
       //   this.bestCandIdxs[objIdx];
@@ -455,14 +484,9 @@ class GeneticAlgorithm extends EventEmitter {
     }
   }
 
-  public [util.inspect.custom](): string {
-    return this.toString();
-  }
+  public [util.inspect.custom](): string { return this.toString(); }
 
-  public toString(): string {
-    return `GeneticAlgorithm ${util.inspect(this)}`;
-  }
+  public toString(): string { return `GeneticAlgorithm ${util.inspect(this)}`; }
 }
 
 module.exports = GeneticAlgorithm;
-// vim:hlsearch:sw=2:ts=4:expandtab:foldmethod=manual:nu:
