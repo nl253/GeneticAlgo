@@ -20,7 +20,7 @@
       "es6",
       "es7"
     ],
-    "sourceMap": false
+    "sourceMap": true
   },
   "exclude": [
     "examples",
