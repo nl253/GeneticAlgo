@@ -20,7 +20,7 @@ const fitness: FitnessFunct = candidate => {
 const nBits          = 32;
 const dtype: Dtype   = `u${nBits}` as Dtype;
 const nGenes         = 500;
-const opts: UserOpts = { timeOutMS: 30 * SEC, logLvl: 2 };
+const opts: UserOpts = { timeOutMS: 30 * SEC, logLvl: 1 };
 
 const bestPossible = 2 ** nBits * nGenes;
 

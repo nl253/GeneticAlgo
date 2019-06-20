@@ -2,15 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="47e2f400-454b-419c-99a5-4d5e59f612bd" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/eventEmitter.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/scratch.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.eslintrc.json" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintrc.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/jsLibraryMappings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/jsLibraryMappings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/simple.js" beforeDir="false" afterPath="$PROJECT_DIR$/examples/simple.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/simple.ts" beforeDir="false" afterPath="$PROJECT_DIR$/examples/simple.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/tsconfig.json" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/.tmp/" />
     <ignored path="$PROJECT_DIR$/temp/" />
@@ -24,11 +17,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="375">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/examples/simple.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="273">
-              <caret line="15" column="1" selection-start-line="15" selection-start-column="1" selection-end-line="15" selection-end-column="1" />
+            <state relative-caret-position="272">
+              <caret line="26" column="38" selection-start-line="26" selection-start-column="38" selection-end-line="26" selection-end-column="38" />
               <folding>
                 <element signature="n#!!doc" expanded="true" />
                 <element signature="e#247#313#0" expanded="true" />
@@ -38,17 +31,23 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/index.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="115">
-              <caret line="143" selection-start-line="143" selection-end-line="143" />
+            <state relative-caret-position="262">
+              <caret line="170" column="24" selection-start-line="170" selection-start-column="24" selection-end-line="170" selection-end-column="24" />
               <folding>
+                <element signature="n#!!doc" expanded="true" />
                 <element signature="n#!!block;n#NumOptResolved#0" />
                 <element signature="n#!!block#1;n#getNumOpt#0" expanded="true" />
-                <element signature="e#4749#5375#0" expanded="true" />
-                <element signature="n#!!block;n#select#0;n#GeneticAlgorithm#0" expanded="true" />
-                <element signature="n#!!block;n#mutate#0;n#GeneticAlgorithm#0" expanded="true" />
+                <element signature="e#4772#5415#0" expanded="true" />
+                <element signature="e#9688#9927#0" expanded="true" />
+                <element signature="e#9781#9916#0" expanded="true" />
+                <element signature="e#10030#10121#0" expanded="true" />
+                <element signature="e#11072#11571#0" expanded="true" />
+                <element signature="e#11639#11826#0" expanded="true" />
+                <element signature="e#11363#11742#0" expanded="true" />
+                <element signature="e#15262#15316#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -115,8 +114,8 @@
         <option value="$PROJECT_DIR$/package.json" />
         <option value="$PROJECT_DIR$/eventEmitter.ts" />
         <option value="$PROJECT_DIR$/scratch.ts" />
-        <option value="$PROJECT_DIR$/examples/simple.ts" />
         <option value="$PROJECT_DIR$/index.ts" />
+        <option value="$PROJECT_DIR$/examples/simple.ts" />
       </list>
     </option>
   </component>
@@ -133,7 +132,7 @@
   </component>
   <component name="ProjectFrameBounds">
     <option name="x" value="-8" />
-    <option name="width" value="1493" />
+    <option name="width" value="987" />
     <option name="height" value="1038" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -246,7 +245,8 @@
     </recent_temporary>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-6" y="0" width="1194" height="830" extended-state="0" />
+    <frame x="-6" y="0" width="789" height="830" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" weight="0.21564694" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -255,7 +255,7 @@
       <window_info anchor="bottom" id="Terminal" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" sideWeight="0.49934897" weight="0.32863188" />
-      <window_info active="true" anchor="bottom" x="1182" y="30" width="353" height="793" id="Run" order="2" type="WINDOWED" visible="true" weight="0.34132582" />
+      <window_info active="true" anchor="bottom" x="777" y="30" width="759" height="793" id="Run" order="2" type="WINDOWED" visible="true" weight="0.34132582" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39915374" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -454,19 +454,6 @@
     <entry file="file://$PROJECT_DIR$/validate.js" />
     <entry file="file://$PROJECT_DIR$/score.js" />
     <entry file="file://$PROJECT_DIR$/logging.js" />
-    <entry file="file://$PROJECT_DIR$/index.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="441">
-          <caret line="48" column="4" selection-start-line="48" selection-start-column="4" selection-end-line="48" selection-end-column="4" />
-          <folding>
-            <element signature="n#!!doc;n#constructor#0;n#GeneticAlgorithm#0" expanded="true" />
-            <element signature="n#!!block;n#mutate#0;n#GeneticAlgorithm#0" expanded="true" />
-            <element signature="n#!!block;n#crossover#0;n#GeneticAlgorithm#0" expanded="true" />
-            <element signature="n#!!block;n#search#0;n#GeneticAlgorithm#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/dtype.js" />
     <entry file="file://$PROJECT_DIR$/.eslintrc.json">
       <provider selected="true" editor-type-id="text-editor">
@@ -563,28 +550,45 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/index.ts">
+    <entry file="file://$PROJECT_DIR$/index.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="115">
-          <caret line="143" selection-start-line="143" selection-end-line="143" />
+        <state relative-caret-position="2499">
+          <caret line="231" column="3" selection-start-line="231" selection-start-column="3" selection-end-line="231" selection-end-column="3" />
           <folding>
-            <element signature="n#!!block;n#NumOptResolved#0" />
-            <element signature="n#!!block#1;n#getNumOpt#0" expanded="true" />
-            <element signature="e#4749#5375#0" expanded="true" />
-            <element signature="n#!!block;n#select#0;n#GeneticAlgorithm#0" expanded="true" />
-            <element signature="n#!!block;n#mutate#0;n#GeneticAlgorithm#0" expanded="true" />
+            <element signature="e#659#2375#0" expanded="true" />
+            <element signature="e#1030#2373#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/examples/simple.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="273">
-          <caret line="15" column="1" selection-start-line="15" selection-start-column="1" selection-end-line="15" selection-end-column="1" />
+        <state relative-caret-position="272">
+          <caret line="26" column="38" selection-start-line="26" selection-start-column="38" selection-end-line="26" selection-end-column="38" />
           <folding>
             <element signature="n#!!doc" expanded="true" />
             <element signature="e#247#313#0" expanded="true" />
             <element signature="e#781#872#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/index.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="262">
+          <caret line="170" column="24" selection-start-line="170" selection-start-column="24" selection-end-line="170" selection-end-column="24" />
+          <folding>
+            <element signature="n#!!doc" expanded="true" />
+            <element signature="n#!!block;n#NumOptResolved#0" />
+            <element signature="n#!!block#1;n#getNumOpt#0" expanded="true" />
+            <element signature="e#4772#5415#0" expanded="true" />
+            <element signature="e#9688#9927#0" expanded="true" />
+            <element signature="e#9781#9916#0" expanded="true" />
+            <element signature="e#10030#10121#0" expanded="true" />
+            <element signature="e#11072#11571#0" expanded="true" />
+            <element signature="e#11639#11826#0" expanded="true" />
+            <element signature="e#11363#11742#0" expanded="true" />
+            <element signature="e#15262#15316#0" expanded="true" />
           </folding>
         </state>
       </provider>

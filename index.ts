@@ -1,3 +1,13 @@
+/**
+ * You MAY override the following methods using inheritance (just extend GeneticAlgorithm):
+ * - createPop
+ * - mutate
+ * - crossover
+ * - select
+ * - randGeneVal
+ * - isFinished
+ * - compare
+ */
 import { EventEmitter } from './eventEmitter';
 
 export type Dtype = 'u32'
@@ -36,13 +46,11 @@ export type UserOpts = {
   nMutations?: NumOpt,
   nRounds?: number,
   nTrack?: number,
-  pElite?: NumOpt,
   pMutate?: NumOpt,
   popSize?: number,
-  randValMax?: number,
-  randValMin?: number,
+  boundUpper?: number,
+  boundLower?: number,
   timeOutMS?: number,
-  tournamentSize?: NumOpt,
   weights?: Array<number> | TypedArray,
 };
 type ResolvedOpts = {
@@ -52,13 +60,11 @@ type ResolvedOpts = {
   nMutations: NumOpt,
   nRounds: number,
   nTrack: number,
-  pElite: NumOpt,
   pMutate: NumOpt,
   popSize: number,
-  randValMax: number,
-  randValMin: number,
+  boundUpper: number,
+  boundLower: number,
   timeOutMS: number,
-  tournamentSize: NumOpt,
   weights: Array<number> | TypedArray,
 };
 type NumOptResolved = {
@@ -147,10 +153,8 @@ export class GeneticAlgorithm extends EventEmitter {
     nTrack:          100,
     popSize:         300,
     nElite:          { start:  0.05, end: 0.150 },
-    pElite:          { start:  0.10, end: 0.300, whenFit: 'decreases' },
     pMutate:         { start:  0.10, end: 0.010, whenFit: 'increases' },
     nMutations:      { start: 10.00, end: 1.000, whenFit: 'decreases' },
-    tournamentSize:  { start:  2.00, end: 6.000, whenFit: 'increases' },
     logLvl:          0,
     timeOutMS:       30 * 1000, // 30 SEC
     validateFitness: false, // check if NaN returned
@@ -168,12 +172,10 @@ export class GeneticAlgorithm extends EventEmitter {
 
   public readonly popSize: number;
   // value within search space bounds (guess from dtype)
-  public readonly randGeneVal!: (gIdx: number) => number;
+  public readonly randGeneVal!: (gene: number, gIdx: number) => number;
   public readonly weights: Array<number> | TypedArray;
 
   // dynamic getter generation
-  public readonly tournamentSize!: number;
-  public readonly pElite!: number;
   public readonly pMutate!: number;
   public readonly nElite!: number;
   public readonly nMutations!: number;
@@ -210,8 +212,6 @@ export class GeneticAlgorithm extends EventEmitter {
     optToGetter(this, 'nElite', getNumOpt(resolvedOpts.popSize, resolvedOpts.nElite), Math.round);
     optToGetter(this, 'nMutations', getNumOpt(nGenes, resolvedOpts.nMutations), Math.ceil);
     optToGetter(this, 'pMutate', getNumOpt(undefined, resolvedOpts.pMutate));
-    optToGetter(this, 'tournamentSize', getNumOpt(resolvedOpts.popSize, resolvedOpts.tournamentSize), (n: number) => Math.max(2, Math.ceil(n)));
-    optToGetter(this, 'pElite', getNumOpt(undefined, resolvedOpts.pElite));
 
     this.weights     = resolvedOpts.weights;
     this.nTrack      = resolvedOpts.nTrack;
@@ -231,7 +231,7 @@ export class GeneticAlgorithm extends EventEmitter {
       let randValMax: number;
 
       // intelligently compute min and max bounds of search space based on `dtype`
-      if (resolvedOpts.randValMax === undefined) {
+      if (resolvedOpts.boundUpper === undefined) {
         if (dtype.startsWith('f')) {
           randValMax = (3.4 * (10 ** 38) - 1) / 1E4;
         } else if (dtype.startsWith('i')) {
@@ -240,10 +240,10 @@ export class GeneticAlgorithm extends EventEmitter {
           randValMax = 2 ** nBits - 1;
         }
       } else {
-        randValMax = resolvedOpts.randValMax;
+        randValMax = resolvedOpts.boundUpper;
       }
 
-      if (resolvedOpts.randValMin === undefined) {
+      if (resolvedOpts.boundLower === undefined) {
         if (dtype.startsWith('f')) {
           randValMin = (1.2 * (10 ** -38)) / 1E4;
         } else if (dtype.startsWith('i')) {
@@ -252,11 +252,11 @@ export class GeneticAlgorithm extends EventEmitter {
           randValMin = 0;
         }
       } else {
-        randValMin = resolvedOpts.randValMin;
+        randValMin = resolvedOpts.boundLower;
       }
 
       const randRange  = randValMax - randValMin;
-      this.randGeneVal = (gIdx: number) => randValMin + randRange * Math.random();
+      this.randGeneVal = (gene: number, gIdx: number) => randValMin + randRange * Math.random();
     }
 
     this.pop = this.createPop();
@@ -330,12 +330,12 @@ export class GeneticAlgorithm extends EventEmitter {
 
     if (resolvedOpts.logLvl >= 2) {
       this.on('op', () => {
-        fmtTable(`${this.rank}${this.rank === 1 ? 'st' : this.rank === 2 ? 'nd' : this.rank === 3 ? 'rd' : 'th'} best cand`,
-                 {
-                   pMutate        : `${(this.pMutate * 100).toFixed(0)}%`,
-                   [`${this.op === 'crossover' ? 'tournamentSize' : 'nMutations    '}`]: `${this.op === 'crossover' ? this.tournamentSize : this.nMutations}`
-                 }, false,
-                 true);
+        const obj: { pMutate: string | number, nMutations: undefined | string | number } = { pMutate : `${(this.pMutate * 100).toFixed(0)}%`, nMutations: '' };
+        if (this.op === 'mutate') {
+          obj.nMutations = this.nMutations;
+        }
+        const heading = `${this.rank}${this.rank === 1 ? 'st' : this.rank === 2 ? 'nd' : this.rank === 3 ? 'rd' : 'th'} best cand`;
+        fmtTable(heading, obj, false, true);
       });
     }
   }
@@ -369,7 +369,7 @@ export class GeneticAlgorithm extends EventEmitter {
     for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
       const offset = cIdx * this.nGenes;
       for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
-        pop[offset + gIdx] = this.randGeneVal(gIdx);
+        pop[offset + gIdx] = this.randGeneVal(pop[offset + gIdx], gIdx);
       }
     }
     return pop;
@@ -462,7 +462,7 @@ export class GeneticAlgorithm extends EventEmitter {
           this.mutate(this.nMutations);
         } else {
           this.op = 'crossover';
-          this.crossover(oldPop, this.select(this.tournamentSize, this.pElite, this.nElite));
+          this.crossover(oldPop, this.select());
         }
         this.emit('op');
       }
@@ -488,16 +488,17 @@ export class GeneticAlgorithm extends EventEmitter {
     }
   }
 
-  protected select(tournamentSize: number, pElite: number, nElite: number): number {
-    const rand = Math.random;
+  protected select(): number {
+    const rand  = Math.random;
 
     // begin with a fallback value
     let candIdx = Math.floor(rand() * this.popSize);
 
     // candidates are already sorted according to fitness
-    // choose with probability skwewed to be higher when fit
+    // choose with probability skewed to be higher when fit
     for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
-      if ((0.001 + rand() * 0.35 * (1 - (cIdx / this.popSize))) < rand()) {
+      const p = 1E3 + 0.35 * rand() * this.percentageDone * (1 - (cIdx / this.popSize));
+      if (rand() < p) {
         candIdx = cIdx;
         break;
       }
@@ -510,7 +511,7 @@ export class GeneticAlgorithm extends EventEmitter {
     const candStart = this.cIdx * this.nGenes;
     for (let i = 0; i < nMutations; i++) {
       const gIdx                 = Math.floor(Math.random() * this.nGenes);
-      this.pop[candStart + gIdx] = this.randGeneVal(gIdx);
+      this.pop[candStart + gIdx] = this.randGeneVal(this.pop[candStart + gIdx], gIdx);
     }
   }
 
