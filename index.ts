@@ -429,7 +429,6 @@ export class GeneticAlgorithm extends EventEmitter {
   }
 
   public* search() {
-    debugger;
     this.startTm = Date.now();
     this.emit('start');
 

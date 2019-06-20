@@ -2,7 +2,8 @@
   "files": [
     "index.ts",
     "eventEmitter.ts",
-    "examples/simple.ts"
+    "examples/simple.ts",
+    "examples/math.ts"
 //    "examples/dailyRoutine.js",
 //    "examples/meta.js",
 //    "examples/metrics.js",
@@ -10,13 +11,14 @@
 //    "examples/parallel.js",
 //    "examples/roomDesign.js",
 //    "examples/network.js",
-//    "examples/math.js"
+//    "examples/math.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",
     "module": "umd",
     "target": "es5",
     "types": ["node"],
+    "downlevelIteration": true,
     "strict": true,
     "allowJs": true,
     "alwaysStrict": true,

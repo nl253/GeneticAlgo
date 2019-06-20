@@ -28,9 +28,7 @@
   "files": [
     "README.md",
     "examples/math.js",
-    "examples/metrics.js",
-    "examples/parallel.js",
-    "examples/simple.ts",
+    "examples/simple.js",
     "index.js"
   ],
   "homepage": "https://github.com/nl253/GeneticAlgo-JS",
