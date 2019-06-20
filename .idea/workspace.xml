@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="47e2f400-454b-419c-99a5-4d5e59f612bd" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventEmitter.js" beforeDir="false" afterPath="$PROJECT_DIR$/eventEmitter.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/math.js" beforeDir="false" afterPath="$PROJECT_DIR$/examples/math.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/multiobjective.js" beforeDir="false" afterPath="$PROJECT_DIR$/examples/multiobjective.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/tsconfig.json" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/.tmp/" />
@@ -24,36 +20,42 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/index.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="230">
-              <caret line="431" selection-start-line="431" selection-end-line="431" />
+            <state relative-caret-position="380">
+              <caret line="189" column="2" selection-start-line="189" selection-start-column="2" selection-end-line="189" selection-end-column="2" />
               <folding>
                 <element signature="n#!!doc" expanded="true" />
                 <element signature="n#!!block;n#NumOptResolved#0" />
                 <element signature="n#!!block#1;n#getNumOpt#0" expanded="true" />
+                <element signature="n#!!block;n#search#0;n#GeneticAlgorithm#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/examples/math.ts">
+        <entry file="file://$PROJECT_DIR$/examples/multiobjective.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="314">
-              <caret line="38" column="26" selection-start-line="38" selection-start-column="26" selection-end-line="38" selection-end-column="26" />
+            <state relative-caret-position="168">
+              <caret line="8" column="16" selection-start-line="8" selection-start-column="16" selection-end-line="8" selection-end-column="16" />
               <folding>
-                <element signature="n#!!doc" expanded="true" />
-                <element signature="e#244#553#0" expanded="true" />
-                <element signature="e#725#780#0" expanded="true" />
+                <element signature="e#20#110#0" expanded="true" />
+                <element signature="e#172#438#0" expanded="true" />
+                <element signature="e#617#748#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/tsconfig.json">
+        <entry file="file://$PROJECT_DIR$/examples/math.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="188">
-              <caret line="31" column="1" selection-start-line="31" selection-start-column="1" selection-end-line="31" selection-end-column="1" />
+            <state relative-caret-position="63">
+              <caret line="3" selection-start-line="3" selection-end-line="3" />
+              <folding>
+                <element signature="n#!!doc" expanded="true" />
+                <element signature="e#244#553#0" expanded="true" />
+                <element signature="e#725#780#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -119,9 +121,10 @@
         <option value="$PROJECT_DIR$/examples/simple.ts" />
         <option value="$PROJECT_DIR$/examples/math.js" />
         <option value="$PROJECT_DIR$/package.json" />
-        <option value="$PROJECT_DIR$/examples/math.ts" />
         <option value="$PROJECT_DIR$/tsconfig.json" />
         <option value="$PROJECT_DIR$/index.ts" />
+        <option value="$PROJECT_DIR$/examples/math.ts" />
+        <option value="$PROJECT_DIR$/examples/multiobjective.ts" />
       </list>
     </option>
   </component>
@@ -161,18 +164,6 @@
             </path>
             <path>
               <item name="GeneticAlgo" type="b2602c69:ProjectViewProjectNode" />
-              <item name="GeneticAlgo" type="462c0819:PsiDirectoryNode" />
-              <item name="examples" type="462c0819:PsiDirectoryNode" />
-              <item name="math.ts" type="620a8d5e:NestingTreeNode" />
-            </path>
-            <path>
-              <item name="GeneticAlgo" type="b2602c69:ProjectViewProjectNode" />
-              <item name="GeneticAlgo" type="462c0819:PsiDirectoryNode" />
-              <item name="examples" type="462c0819:PsiDirectoryNode" />
-              <item name="simple.ts" type="620a8d5e:NestingTreeNode" />
-            </path>
-            <path>
-              <item name="GeneticAlgo" type="b2602c69:ProjectViewProjectNode" />
               <item name="External Libraries" type="cb654da1:ExternalLibrariesNode" />
             </path>
           </expand>
@@ -187,7 +178,7 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="javascript.nodejs.core.library.configured.version" value="10.15.1" />
     <property name="js.last.introduce.type" value="CONST" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/examples/math.ts" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/examples/multiobjective.ts" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.standard" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
@@ -214,11 +205,16 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Node.js.math.js">
+  <component name="RunManager" selected="Node.js.multiobjective.js">
     <configuration default="true" type="NodeJSConfigurationType" show_console_on_std_err="true" show_console_on_std_out="true">
       <method v="2" />
     </configuration>
     <configuration name="math.js" type="NodeJSConfigurationType" nameIsGenerated="true" path-to-js-file="examples/math.js" show_console_on_std_err="true" show_console_on_std_out="true" working-dir="$PROJECT_DIR$">
+      <method v="2">
+        <option name="TypeScript.Before.Run" enabled="true" FAIL_ON_ERROR="true" CONFIG_PATH="$PROJECT_DIR$/tsconfig.json" />
+      </method>
+    </configuration>
+    <configuration name="multiobjective.js" type="NodeJSConfigurationType" nameIsGenerated="true" path-to-js-file="examples/multiobjective.js" show_console_on_std_err="true" show_console_on_std_out="true" working-dir="$PROJECT_DIR$">
       <method v="2">
         <option name="TypeScript.Before.Run" enabled="true" FAIL_ON_ERROR="true" CONFIG_PATH="$PROJECT_DIR$/tsconfig.json" />
       </method>
@@ -228,51 +224,23 @@
         <option name="TypeScript.Before.Run" enabled="true" FAIL_ON_ERROR="true" CONFIG_PATH="$PROJECT_DIR$/tsconfig.json" />
       </method>
     </configuration>
-    <configuration name="simple.ts" type="TypeScriptProgramRunner" factoryName="TypeScript" nameIsGenerated="true">
-      <module name="GA" />
-      <option name="interpreterRef" value="project" />
-      <option name="interpreterOptions" value="" />
-      <option name="workingDirectory" value="C:\Users\norbert\Documents\GeneticAlgo" />
-      <option name="tsconfigFile" value="C:\Users\norbert\Documents\GeneticAlgo\tsconfig.json" />
-      <option name="extraTypeScriptOptions" value="--prefer-ts-exts --files" />
-      <option name="scriptName" value="C:\Users\norbert\Documents\GeneticAlgo\examples\simple.ts" />
-      <option name="programParameters" value="" />
-      <option name="tsnodePackage" value="~\Documents\GeneticAlgo\node_modules\ts-node" />
-      <method v="2" />
-    </configuration>
-    <configuration name="build" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="build" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
     <list>
+      <item itemvalue="Node.js.multiobjective.js" />
       <item itemvalue="Node.js.simple.js" />
       <item itemvalue="Node.js.math.js" />
-      <item itemvalue="npm.build" />
-      <item itemvalue="TypeScript.simple.ts" />
     </list>
-    <recent_temporary>
-      <list>
-        <item itemvalue="npm.build" />
-      </list>
-    </recent_temporary>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-6" y="0" width="781" height="830" extended-state="0" />
+    <frame x="-6" y="0" width="1040" height="830" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" weight="0.21512386" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.21442495" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="npm" order="2" side_tool="true" />
       <window_info id="Favorites" order="3" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
-      <window_info anchor="bottom" id="Find" order="1" sideWeight="0.49934897" weight="0.32863188" />
-      <window_info active="true" anchor="bottom" x="777" y="30" width="759" height="793" id="Run" order="2" type="WINDOWED" visible="true" weight="0.34132582" />
+      <window_info anchor="bottom" id="Find" order="1" sideWeight="0.49934897" weight="0.3281027" />
+      <window_info active="true" anchor="bottom" x="1028" y="30" width="508" height="793" id="Run" order="2" type="WINDOWED" visible="true" weight="0.34132582" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39915374" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -472,18 +440,6 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/node_modules/wolfy87-eventemitter/EventEmitter.d.ts" />
-    <entry file="file://$PROJECT_DIR$/examples/multiobjective.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="132">
-          <caret line="28" column="58" selection-start-line="28" selection-start-column="58" selection-end-line="28" selection-end-column="58" />
-          <folding>
-            <element signature="e#20#110#0" expanded="true" />
-            <element signature="e#172#438#0" expanded="true" />
-            <element signature="e#617#748#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/examples/roomDesign.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="204">
@@ -601,31 +557,44 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/tsconfig.json">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="188">
-          <caret line="31" column="1" selection-start-line="31" selection-start-column="1" selection-end-line="31" selection-end-column="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/index.ts">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="230">
-          <caret line="431" selection-start-line="431" selection-end-line="431" />
-          <folding>
-            <element signature="n#!!doc" expanded="true" />
-            <element signature="n#!!block;n#NumOptResolved#0" />
-            <element signature="n#!!block#1;n#getNumOpt#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="315">
+          <caret line="29" selection-start-line="29" selection-end-line="29" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/examples/math.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="314">
-          <caret line="38" column="26" selection-start-line="38" selection-start-column="26" selection-end-line="38" selection-end-column="26" />
+        <state relative-caret-position="63">
+          <caret line="3" selection-start-line="3" selection-end-line="3" />
           <folding>
             <element signature="n#!!doc" expanded="true" />
             <element signature="e#244#553#0" expanded="true" />
             <element signature="e#725#780#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/index.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="380">
+          <caret line="189" column="2" selection-start-line="189" selection-start-column="2" selection-end-line="189" selection-end-column="2" />
+          <folding>
+            <element signature="n#!!doc" expanded="true" />
+            <element signature="n#!!block;n#NumOptResolved#0" />
+            <element signature="n#!!block#1;n#getNumOpt#0" expanded="true" />
+            <element signature="n#!!block;n#search#0;n#GeneticAlgorithm#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/examples/multiobjective.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="168">
+          <caret line="8" column="16" selection-start-line="8" selection-start-column="16" selection-end-line="8" selection-end-column="16" />
+          <folding>
+            <element signature="e#20#110#0" expanded="true" />
+            <element signature="e#172#438#0" expanded="true" />
+            <element signature="e#617#748#0" expanded="true" />
           </folding>
         </state>
       </provider>
