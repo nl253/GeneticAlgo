@@ -470,7 +470,6 @@ The bottleneck is the fitness function.
 ## Downsides
 
 - single-threaded (but see [parallel example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/parallel.js) that uses the cluster module from node stdlib).
-- this is a node.js library so it won't work in a browser
 
 ## License
 

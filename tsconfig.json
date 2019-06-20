@@ -1,7 +1,22 @@
 {
+  "files": [
+    "index.ts",
+    "eventEmitter.ts",
+    "examples/simple.ts"
+//    "examples/dailyRoutine.js",
+//    "examples/meta.js",
+//    "examples/metrics.js",
+//    "examples/multiobjective.js",
+//    "examples/parallel.js",
+//    "examples/roomDesign.js",
+//    "examples/network.js",
+//    "examples/math.js"
+  ],
   "compilerOptions": {
+    "baseUrl": ".",
     "module": "umd",
     "target": "es5",
+    "types": ["node"],
     "strict": true,
     "allowJs": true,
     "alwaysStrict": true,
@@ -20,7 +35,7 @@
       "es6",
       "es7"
     ],
-    "sourceMap": true
+    "inlineSourceMap": true
   },
   "exclude": [
     "examples",
