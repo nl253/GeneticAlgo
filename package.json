@@ -28,6 +28,8 @@
   "files": [
     "README.md",
     "examples/math.js",
+    "examples/parallel.js",
+    "examples/multiobjective.js",
     "examples/simple.js",
     "index.js"
   ],
