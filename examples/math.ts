@@ -24,7 +24,7 @@ const nGenes = 6;
 
 const ga = new GA(fitness, nGenes, dtype, {
   nMutations: 1,
-  logLvl: 2,
+  logLvl: 1,
   timeOutMS: 30 * SEC,
 });
 

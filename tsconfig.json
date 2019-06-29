@@ -25,7 +25,7 @@
     "outDir": ".",
     "pretty": true,
     "watch": false,
-    "listFiles": true,
+    "listFiles": false,
     "lib": [
       "es5",
       "es6",

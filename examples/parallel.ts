@@ -13,7 +13,7 @@ if (cluster.isMaster) {
     console.log(`worker #${i} started`);
     cluster.fork();
   }
-  process.exit(0);
+  // process.exit(0);
 }
 
 // this is the worker code
@@ -32,7 +32,7 @@ const opts = {
   nMutations: [1 + Math.floor(Math.random() * 5), 1],
   nElite:     [0.01, 0.01 + Math.random() * 0.4],
   popSize:    50 + Math.floor(Math.random() * 1500),
-  timeOutMS:  45 * SEC,
+  timeOutMS:  20 * SEC,
 };
 
 // @ts-ignore

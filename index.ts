@@ -384,7 +384,7 @@ export class GeneticAlgorithm extends EventEmitter {
       return true;
     }
 
-    return false; // TODO implement plat
+    return false; // TODO implement plateau detection
 
     // // track overall change for every objective
     // const change = arrays.f64(this.fitness.length);
