@@ -4,14 +4,8 @@
     "eventEmitter.ts",
     "examples/simple.ts",
     "examples/math.ts",
+    "examples/parallel.ts",
     "examples/multiobjective.ts"
-//    "examples/dailyRoutine.js",
-//    "examples/meta.js",
-//    "examples/metrics.js",
-//    "examples/parallel.js",
-//    "examples/roomDesign.js",
-//    "examples/network.js",
-//    "examples/math.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",

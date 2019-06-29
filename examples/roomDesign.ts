@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
+ * TODO
  * This is an example where the task is to automatically design a room layout.
  */
-const GA = require('..');
+import { GeneticAlgorithm as GA } from '../index';
+
 const SEC = 1000;
 
 // we have an X by Y room with a:
