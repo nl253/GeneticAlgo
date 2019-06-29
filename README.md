@@ -3,11 +3,11 @@
 - use when search space is too large to use brute-force search
   - e.g. solving equations, automating the process of design and solving **combinatorial problems** (timetable scheduling)
   - many **problems can be reformulated as exploring an n-dimensional search space**
-- **adaptive** parameters that change linearly as time approaches end
+- **adaptive** parameters that change linearly as time approaches end and in response to quality of candidate solution
 - **elitism** (preserves top candidates)
-- detects when the algorithm is stuck in a local minimum and returns
 - allows for profiling and debugging (see **EventEmitter API**)
 - **efficient** (built on typed arrays)
+<!--- detects when the algorithm is stuck in a local minimum and returns-->
 
 For an **alternative heuristic** search that may work better when your
 problem uses continuous (real) values see my [particle swarm optimization algorithm](https://www.npmjs.com/package/particle-swarm-optimization)
@@ -26,7 +26,7 @@ $ npm install genetic-algo
 Example:
 
 ```js
-const GA = require('genetic-algo')
+const { GA } = require('genetic-algo')
 
 // silly fitness function, maximises values of all genes (see below for a better example)
 const fitnessFunction = arr => arr.reduce((x, y) => x + y, 0)
@@ -45,6 +45,7 @@ In a nutshell:
    returns a number. Each candidate is of length `nGenes`. The candidates
    that score the highest will be favoured in the
    selection and will make it to the next gene pool. (see **FITNESS FUNCTION** section below)
+   For multiple objectives (e.g. you want the solution to have more than one property: price, time, quality ...) supply an array of fitness functions.
 3. Choose `dtype`, one of: `"f64" | "f32" | "i32" | "i16" | "i8" | "u32" | "u16" | "u8"` (see **DTYPE** section below)
 4. [EXTRA] You might want a `decode` function as well (see **DECODE FUNCTION** section below).
 
@@ -79,7 +80,7 @@ const fitness = xs => {
 Fittest candidates score 0 (distance from the root is 0 meaning root has
 been found), least fit candidates have a negative value.
 
-Output from [this example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/math.js) which uses this fitness function:
+Output from [this example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/math.ts) which uses this fitness function:
 
 ```
 log2( 98) *   0^ 61 / 209 +   0^log2( 76) = 0
@@ -95,6 +96,28 @@ log2(  2) *   0^100 / 132 +   0^log2(130) = 0
 
 It's crucial that you reward candidate solutions for **approximating** i.e.
 getting close to the solution. If they are a bit right -- add some fitness.
+
+### Multiple Objectives
+
+For multiple objectives (e.g. you want the solution to have more than one property: price, time, quality ...) supply an array of fitness functions:
+
+```js
+const fitness = [
+  (cand) => getSpeed(cand),
+  (cand) => getPrice(cand),
+  (cand) => getDurability(cand),
+  (cand) => getUserFriendliness(cand),
+]
+```
+
+The functions may return numbers in any scale. E.g. `getSpeed` can return a number in [0, 100], `getPrice` can return a number in [100, 1000000] etc.
+You might want to provide weights for each objective (by default each is 1.0 i.e. equally important):
+
+```js
+const opts = {
+  weights: [0.2, 0.4, 0.1, 0.01] // default [1.0, 1.0, 1.0, 1.0]
+}
+```
 
 ### [OPTIONAL] Decode Function
 
@@ -266,7 +289,6 @@ defaults:
 const SEC = 1000
 
 const opts = {
-
   // stop condition
   // 
   // if you find that the algorithm gets stuck too quickly, increase it
@@ -287,49 +309,12 @@ const opts = {
   // 0.2 is 20%, 10 is 10
   // 
   // if you find that the algorithm gets stuck too quickly, decrease it
-  nElite: 0.2,
+  nElite: { start:  0.05, end: 0.15 },
 
-  // probability of choosing elites for selection
-  //
-  // the algorithm will begin with pElite = minPElite,
-  // and increase it linearly with time until it reaches maxPElite
-  minPElite: 0.01,
-  maxPElite: 0.2,
-  
-  // tournament size for selection
-  // the algorithm will begin with tournamentSize = minTournamentSize, and increase it linearly with time
-  // 
-  // decrease both if you find that the algorithm gets stuck too quickly
-  minTournamentSize: 0.01, // % of popSize, can be an Int (must be at least 2)
-  maxTournamentSize: 0.04, // % of popSize, can be an Int (must be >= minTournamentSize)
+  pMutate: { start:  0.1, end: 0.01, whenFit: 'increases' },
 
   // when mutating, target at least ? genes
-  //
-  // the algorithm will begin with nMutations = maxNMutations,
-  // and decrease it linearly with time until it reaches miNNMutations
-  minNMutations: 1,
-
-  // when mutating, target at most ? genes
-  //
-  // by default it's set to a small value based on nGenes 
-  // the more genes, the higher it is
-  maxNMutations: null,
-
-  // keep track of improvements in previous rounds to detect local minima
-  //
-  // if you find that the algorithm gets stuck too quickly, increase it
-  nTrack: 100,
-
-  // used to detect being stuck local minima (no improvement),
-  //
-  // you should not need to change it
-  minImprove: 1E-6,
-  
-  // check on every evalutation if the fitness function returns NaN
-  // 
-  // you can enable it at the expense of some performance
-  // it's best to have it disabled and ensure the fitness function never returns NaN
-  validateFitness: false,
+  nMutations: { start: 10, end: 1, whenFit: 'decreases' },
 
   // when mutating, the value of a gene is replaced with a random value
   // this specifies the range of the random value
@@ -339,8 +324,20 @@ const opts = {
   // it might make sense for you to set it manually if you have an idea of
   // where in the search space the solution might be
   // this might cause it to converge faster
-  maxRandVal: undefined,
-  minRandVal: undefined,
+  randGeneVal: undefined,
+ 
+  // when using multi-objective optimisation, you can specify relative weights for every objective (measured by each of fitness function from the array), see **FITNESS FUNCTION**
+  weights: undefined,
+
+  // keep track of improvements in previous rounds to detect local minima
+  //
+  // if you find that the algorithm gets stuck too quickly, increase it
+  // TODO nTrack: 100,
+
+  // used to detect being stuck local minima (no improvement),
+  //
+  // you should not need to change it
+  // TODO minImprove: 1E-6,
 }
 ```
 
@@ -465,11 +462,12 @@ More examples [here](https://github.com/nl253/GeneticAlgo-JS/tree/master/example
 
 ## Performance
 
-The bottleneck is the fitness function.
+- The bottleneck is the fitness function.
+- Log less for better performance
 
 ## Downsides
 
-- single-threaded (but see [parallel example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/parallel.js) that uses the cluster module from node stdlib).
+- single-threaded (but see [parallel example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/parallel.ts) that uses the cluster module from node stdlib).
 
 ## License
 
