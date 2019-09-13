@@ -2,7 +2,7 @@
 /**
  * Sets the meta-parameters of the Genetic Algorithm by running sub-genetic algorithms with different settings.
  */
-const GA = require('..');
+import { GeneticAlgorithm as GA } from '../index';
 
 const SEC = 1000;
 const MIN = 60 * SEC;
@@ -14,7 +14,7 @@ const opts = {
 };
 const nGenes = 7;
 
-function decodeCand(cand) {
+function decodeCand(cand): object {
   const minNGeneMut = 1 + cand[0];
   const maxNGeneMut = Math.min(300, minNGeneMut + cand[1]);
   const popSize = 80 + cand[2];
