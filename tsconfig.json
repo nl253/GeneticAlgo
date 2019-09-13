@@ -1,7 +1,6 @@
 {
   "files": [
     "index.ts",
-    "eventEmitter.ts",
     "examples/simple.ts",
     "examples/math.ts",
     "examples/parallel.ts",
@@ -9,8 +8,8 @@
   ],
   "compilerOptions": {
     "baseUrl": ".",
-    "module": "umd",
     "target": "es5",
+    "module": "commonjs",
     "types": ["node"],
     "downlevelIteration": true,
     "strict": true,

@@ -4,6 +4,12 @@
     "email": "norbertlogiewa96@gmail.com",
     "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
   },
+  "maintainers": [
+    {
+      "email": "norbertlogiewa96@gmail.com",
+      "name": "Norbert Logiewa"
+    }
+  ],
   "description": "Genetic algorithm",
   "devDependencies": {
     "@types/node": "^12.0.8",
@@ -22,7 +28,9 @@
     "typescript": "^3.5.2"
   },
   "directories": {
-    "example": "examples",
+    "example": "examples"
+  },
+  "engines": {
     "node": ">=10"
   },
   "files": [
