@@ -26,7 +26,7 @@ $ npm install genetic-algo
 Example:
 
 ```js
-const { GA } = require('genetic-algo')
+const { GeneticAlgorithm: GA } = require('genetic-algo')
 
 // silly fitness function, maximises values of all genes (see below for a better example)
 const fitnessFunction = arr => arr.reduce((x, y) => x + y, 0)
