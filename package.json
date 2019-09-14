@@ -62,6 +62,9 @@
     "type": "git",
     "url": "https://github.com/nl253/GeneticAlgo-JS"
   },
+  "jest": {
+    "maxConcurrency": 4
+  },
   "scripts": {
     "build": "npx tsc -p .",
     "watch": "npx tsc -p . --watch",

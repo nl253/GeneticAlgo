@@ -1,6 +1,3 @@
-// TODO check that pop is modified on mutate and crossover
-// TODO check that compare does correct sorting on a 2-element array
-// TODO check that pElite, pMutate and nMutations are correctly changing
 const { GeneticAlgorithm, Duration } = require('./index');
 
 const DEFAULT_DURATION = Duration.seconds(1);
@@ -220,3 +217,8 @@ describe('ga does well on simple problems', () => {
     }
   }
 });
+
+test.todo('idxs are sorted properly so that they are shifted to the left (towards 0) when candidates are fitter');
+test.todo('dynamic parameters pMutate, nMutations and nElite are adjusted correctly');
+test.todo('crossover modifies pop');
+test.todo('mutation modifies pop');
