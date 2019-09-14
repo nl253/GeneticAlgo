@@ -22,13 +22,13 @@ export class EventEmitter {
 
   public emit(e: string, ...args: any[]): boolean {
     const ouput = this.events.get(e) !== undefined;
-    const fs = this.listeners(e);
+    const fs = this.listeners(e, false);
     Promise.all(fs.map(f => new Promise((resolve, reject) => resolve(f(...args)))));
     return ouput;
   }
 
   public on(e: string, f: EventHandler): this {
-    this.listeners(e).push(f);
+    this.listeners(e, false).push(f);
     this.emit('newListener');
     return this;
   }
@@ -42,13 +42,13 @@ export class EventEmitter {
   }
 
   public listenerCount(e: string): number {
-    return this.listeners(e).length;
+    return this.listeners(e, false).length;
   }
 
   public off(e: string, f: EventHandler): this {
-    const fs = this.listeners(e);
+    const fs = this.listeners(e, false);
     const idx = fs.findIndex(l => l === f);
-    this.listeners(e).splice(idx, 1);
+    fs.splice(idx, 1);
     return this;
   }
 
@@ -56,17 +56,17 @@ export class EventEmitter {
     return this.off(e, f);
   }
 
-  public listeners(e: string): EventHandler[] {
+  public listeners(e: string, clone = true): EventHandler[] {
     let output = this.events.get(e);
     if (output === undefined) {
       output = [];
       this.events.set(e, output);
     }
-    return output;
+    return clone ? [...output] : output;
   }
 
   public prependListener(e: string, f: EventHandler): this {
-    this.listeners(e).unshift(f);
+    this.listeners(e, false).unshift(f);
     return this;
   }
 
@@ -261,7 +261,6 @@ export class GeneticAlgorithm extends EventEmitter {
 
   public popSize: number;
   // value within search space bounds (guess from dtype)
-  public randGeneVal!: RandGeneValFunc;
   public weights: Float64Array | Float32Array | number[];
 
   // dynamic getter generation
@@ -269,6 +268,7 @@ export class GeneticAlgorithm extends EventEmitter {
   public nElite!: number;
   public nMutations!: number;
 
+  private oldPop: TypedArray;
   protected pop: TypedArray;
   protected idxs: Uint32Array;
   protected scores: Float64Array[];
@@ -340,7 +340,6 @@ export class GeneticAlgorithm extends EventEmitter {
           this.boundLower = 0;
         }
       }
-
       this.randRange  = this.boundUpper - this.boundLower;
     }
 
@@ -533,7 +532,7 @@ export class GeneticAlgorithm extends EventEmitter {
             });
       }
 
-      const oldPop: TypedArray = this.pop.map((val: number) => val);
+      this.oldPop = this.pop.map((val: number) => val);
 
       /* go over non-elite units (elitism - leave best units unaltered)
        *
@@ -542,10 +541,10 @@ export class GeneticAlgorithm extends EventEmitter {
         this.cIdx = this.idxs[this.rank];
         if (Math.random() < this.pMutate) {
           this.op = 'mutate';
-          this.mutate(this.nMutations);
+          this.mutate();
         } else {
           this.op = 'crossover';
-          this.crossover(oldPop, this.select());
+          this.crossover();
         }
         this.emit('op');
       }
@@ -590,22 +589,23 @@ export class GeneticAlgorithm extends EventEmitter {
     return this.idxs[candIdx];
   }
 
-  protected mutate(nMutations: number): void {
+  protected mutate(): void {
     const candStart = this.cIdx * this.nGenes;
-    for (let i = 0; i < nMutations; i++) {
+    for (let i = 0; i < this.nMutations; i++) {
       const gIdx                 = Math.floor(Math.random() * this.nGenes);
       this.pop[candStart + gIdx] = this.randGeneVal(this.pop[candStart + gIdx], gIdx);
     }
   }
 
-  protected crossover(oldPop: TypedArray, parentIdx: number): void {
+  protected crossover(): void {
+    const parentIdx = this.select();
     // avoid positional bias
     // don't use cross-over point, otherwise genes CLOSE to each other will be more likely to be inherited
     const meStart     = this.cIdx * this.nGenes;
     const parentStart = parentIdx * this.nGenes;
     for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
       if (Math.random() < 0.5) {
-        this.pop[meStart + gIdx] = oldPop[parentStart + gIdx];
+        this.pop[meStart + gIdx] = this.oldPop[parentStart + gIdx];
       }
     }
   }
