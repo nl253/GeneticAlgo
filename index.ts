@@ -224,21 +224,28 @@ type NumOptResolved = {
 function getNumOpt(percentageOf: number | undefined, o: NumOpt): NumOptResolved {
   if (o.constructor.name === 'Number') {
     return getNumOpt(percentageOf, [o, o] as [number, number]);
-  } else if (o.constructor.name === 'Array') {
+
+  } else if (Array.isArray(o)) {
     const [start, end]: [number, number] = o as [number, number];
     return getNumOpt(percentageOf, { start, end });
-  } else if ((o as NumOptResolved).whenFit === undefined) {
-    (o as NumOptResolved).whenFit = 'constant';
-    return getNumOpt(percentageOf, o);
-  } else if (percentageOf !== undefined && (o as NumOptResolved).start < 1.0) {
-    (o as NumOptResolved).start *= percentageOf;
-    return getNumOpt(percentageOf, o);
-  } else if (percentageOf !== undefined && (o as NumOptResolved).end < 1.0) {
-    (o as NumOptResolved).end *= percentageOf;
-    return getNumOpt(percentageOf, o);
-  } else {
-    return o as NumOptResolved;
   }
+
+  const opt = o as NumOptResolved;
+
+  if (opt.whenFit === undefined) {
+    return getNumOpt(percentageOf, { whenFit: 'constant', ...opt });
+  }
+
+  if (percentageOf !== undefined) {
+    const { start, end } = opt;
+    if (start < 1.0) {
+      return getNumOpt(percentageOf, { ...opt, start: start * percentageOf });
+    } else if (end < 1.0) {
+      return getNumOpt(percentageOf, { ...opt, end: end * percentageOf });
+    }
+  }
+
+  return opt;
 }
 
 function optToGetter(self: any,
