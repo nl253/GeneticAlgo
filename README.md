@@ -286,58 +286,81 @@ to begin with defaults and then tweak if necessary. Here are the
 defaults:
 
 ```js
-const SEC = 1000
+const { Duration, PopSize, NElite, NRounds, LogLvl } = require('genetic-algo');
 
 const opts = {
+  logLvl: LogLvl.SILENT,
+
   // stop condition
   // 
   // if you find that the algorithm gets stuck too quickly, increase it
-  timeOutMS: 30 * SEC,
+  timeOutMS: Duration.seconds(30),
 
   // stop condition
-  nRounds: 1E6,
+  nRounds: NRounds.LARGE, /* 1000000 */
 
   // how many candidate solutions to keep track of
   // 
   // it makes sense for it to be 100 - 1500 ish
   // 
   // if you find that the algorithm gets stuck too quickly, increase it
-  popSize: 300,
+  popSize: PopSize.MEDIUM /* 300 */,
 
   // number of elite candidates (guaranteed to make it to next gene pool unaltered) 
   // 
-  // 0.2 is 20%, 10 is 10
-  // 
   // if you find that the algorithm gets stuck too quickly, decrease it
-  nElite: { start:  0.05, end: 0.15 },
-
-  pMutate: { start:  0.1, end: 0.01, whenFit: 'increases' },
+  // 
+  // e.g. nElite: NElite.SMALL,
+  // e.g. nElite: NElite.MEDIUM,
+  // e.g. nElite: NElite.LARGE,
+  // e.g. nElite: 0.1
+  // e.g. nElite: [0.01, 0.1]
+  // e.g. nElite: { start:  0.1, end:  0.5, whenFit: 'constant' }
+  // e.g. nElite: { start: 0.01, end: 0.25, whenFit: 'increases' }
+  // e.g. nElite: { start:  0.1, end:  0.5, whenFit: 'decreases' }
+  nElite: NElite.ADAPTIVE, /* { start:  0.05, end: 0.15 } */
+ 
+  // probability of mutation
+  //
+  // e.g. pMutate: PMutate.SMALL,
+  // e.g. pMutate: PMutate.MEDIUM,
+  // e.g. pMutate: PMutate.LARGE,
+  // e.g. pMutate: 0.1
+  // e.g. pMutate: [0.01, 0.1]
+  // e.g. pMutate: { start:  0.1, end:  0.5, whenFit: 'constant' }
+  // e.g. pMutate: { start: 0.01, end: 0.25, whenFit: 'increases' }
+  // e.g. pMutate: { start:  0.1, end:  0.5, whenFit: 'decreases' }
+  pMutate: PMutate.ADAPTIVE, /* { start:  0.1, end: 0.01, whenFit: 'increases' } */
 
   // when mutating, target at least ? genes
-  nMutations: { start: 10, end: 1, whenFit: 'decreases' },
+  // 
+  // e.g. nMutations: NMutations.SMALL,
+  // e.g. nMutations: NMutations.MEDIUM,
+  // e.g. nMutations: NMutations.LARGE,
+  // e.g. nMutations: 0.1
+  // e.g. nMutations: [0.01, 0.1]
+  // e.g. nMutations: { start:  0.1, end:  0.5, whenFit: 'constant' }
+  // e.g. nMutations: { start: 0.01, end: 0.25, whenFit: 'increases' }
+  // e.g. nMutations: { start:  0.1, end:  0.5, whenFit: 'decreases' }
+  nMutations: NMutations.ADAPTIVE,  /* { start: 10, end: 1, whenFit: 'decreases' } */
 
   // when mutating, the value of a gene is replaced with a random value
   // this specifies the range of the random value
   // 
-  // set intelligently based on dtype so not necessary to tweak
+  // when not specified, it's set intelligently based on dtype so not necessary to tweak
   //
-  // it might make sense for you to set it manually if you have an idea of
-  // where in the search space the solution might be
+  // set it manually if you have an idea of where in the search space the solution might be
   // this might cause it to converge faster
+  //
+  // e.g. randGeneVal: [-100, 2000] /* lower and upper bounds */
+  // e.g. randGeneVal: () => -200 + Math.random() * 1E4 /* custom function */
   randGeneVal: undefined,
  
-  // when using multi-objective optimisation, you can specify relative weights for every objective (measured by each of fitness function from the array), see **FITNESS FUNCTION**
-  weights: undefined,
-
-  // keep track of improvements in previous rounds to detect local minima
-  //
-  // if you find that the algorithm gets stuck too quickly, increase it
-  // TODO nTrack: 100,
-
-  // used to detect being stuck local minima (no improvement),
-  //
-  // you should not need to change it
-  // TODO minImprove: 1E-6,
+  // when using multi-objective optimisation, you can specify relative weights for every objective 
+  // (measured by each of fitness function from the array)
+  // see **FITNESS FUNCTION**
+  // e.g. weights: [0.2, 0.4, 1] /* needs to have the same length as the fitenss function array */
+  weights: undefined, 
 }
 ```
 

@@ -2,13 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d674af68-e813-448a-ba60-6492f755356c" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/tsconfig.example.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/math.ts" beforeDir="false" afterPath="$PROJECT_DIR$/examples/math.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/multiobjective.ts" beforeDir="false" afterPath="$PROJECT_DIR$/examples/multiobjective.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/parallel.ts" beforeDir="false" afterPath="$PROJECT_DIR$/examples/parallel.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/simple.ts" beforeDir="false" afterPath="$PROJECT_DIR$/examples/simple.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/tsconfig.json" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -88,7 +84,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Node.js.parallel.js">
+  <component name="RunManager" selected="Node.js.math.js">
     <configuration name="math.js" type="NodeJSConfigurationType" nameIsGenerated="true" path-to-js-file="examples/math.js" working-dir="$PROJECT_DIR$">
       <method v="2">
         <option name="NpmBeforeRunTask" enabled="true">
@@ -261,7 +257,7 @@
       <updated>1568403133339</updated>
       <workItem from="1568403134549" duration="3004000" />
       <workItem from="1568406443626" duration="6119000" />
-      <workItem from="1568445034051" duration="9859000" />
+      <workItem from="1568445034051" duration="13237000" />
     </task>
     <task id="LOCAL-00001" summary="Line seps">
       <created>1568403658495</created>

@@ -1,10 +1,8 @@
 /**
  * You MAY override the following methods using inheritance (just extend GeneticAlgorithm):
- * - createPop
  * - mutate
  * - crossover
  * - select
- * - randGeneVal
  * - isFinished
  * - compare
  */
@@ -29,22 +27,24 @@ export const PopSize = Object.freeze({
   TINY:  50,
 });
 
+// noinspection ConfusingFloatingPointLiteralJS
 export const NRounds = Object.freeze({
   LARGE:  1E6,
   MEDIUM: 1E5,
   SMALL:  1E4,
 });
 
-export const MinImprove = Object.freeze({
+const MinImprove = Object.freeze({
   SENSITIVE:   1E-6,
   MEDIUM:      1E-4,
   INSENSITIVE: 1E-2,
 });
 
-export const NTrack = Object.freeze({
+const NTrack = Object.freeze({
+  TINY:    10,
+  SMALL:   50,
   LARGE:  300,
   MEDIUM: 100,
-  SMALL:   50,
 });
 
 export const NElite = Object.freeze({
@@ -63,7 +63,7 @@ export const PMutate = Object.freeze({
 
 export const NMutations = Object.freeze({
   ADAPTIVE: { start: 10.00, end: 1.000, whenFit: 'decreases' as Behaviour },
-  TINY:  1,
+  TINY:   1,
   SMALL:  3,
   MEDIUM: 5,
   LARGE:  7,
@@ -78,24 +78,29 @@ export class EventEmitter {
     return ouput;
   }
 
+  // noinspection FunctionNamingConventionJS
   public on(e: string, f: EventListener): this {
     this.listeners(e, false).push(f);
     this.emit('newListener');
     return this;
   }
 
+  // noinspection JSUnusedGlobalSymbols
   public addListener(e: string, f: EventListener): this {
     return this.on(e, f);
   }
 
+  // noinspection JSUnusedGlobalSymbols
   public eventNames(): string[] {
     return [...this.events.keys()];
   }
 
+  // noinspection JSUnusedGlobalSymbols
   public listenerCount(e: string): number {
     return this.listeners(e, false).length;
   }
 
+  // noinspection FunctionNamingConventionJS
   public off(e: string, f: EventListener): this {
     const fs = this.listeners(e, false);
     const idx = fs.findIndex(l => l === f);
@@ -103,6 +108,7 @@ export class EventEmitter {
     return this;
   }
 
+  // noinspection JSUnusedGlobalSymbols
   public removeListener(e: string, f: EventListener): this {
     return this.off(e, f);
   }
@@ -116,11 +122,13 @@ export class EventEmitter {
     return clone ? [...output] : output;
   }
 
+  // noinspection JSUnusedGlobalSymbols
   public prependListener(e: string, f: EventListener): this {
     this.listeners(e, false).unshift(f);
     return this;
   }
 
+  // noinspection JSUnusedGlobalSymbols
   public removeAllListeners(e: string): this {
     this.events.set(e, []);
     return this;
@@ -128,7 +136,7 @@ export class EventEmitter {
 }
 
 export class Duration {
-  private static SEC = 1000;
+  private static readonly SEC = 1000;
   public static seconds(n: number): number {
     return Duration.SEC * n;
   }
@@ -192,7 +200,7 @@ export type NumOpt = number
                        end: number,
                        whenFit?: Behaviour,
                      };
-export type Op = 'crossover' | 'mutate';
+type Op = 'crossover' | 'mutate';
 export type TypedArray = Uint8Array
                        | Uint16Array
                        | Uint32Array
@@ -206,12 +214,12 @@ export type UserOpts = Partial<{
   nElite: NumOpt,
   nMutations: NumOpt,
   pMutate: NumOpt,
-  minImprove: number,
   nRounds: number,
-  nTrack: number,
   popSize: number,
   timeOutMS: number,
   weights: Float64Array | Float32Array | number[],
+  // TODO minImprove: number,
+  // TODO nTrack: number,
   // TODO validateFitness: boolean,
   logLvl: number,
   randGeneVal: () => number | [number, number];
@@ -281,25 +289,26 @@ const arrays = {
 };
 
 export class GeneticAlgorithm extends EventEmitter {
-  public readonly nGenes: number;
-  public fitness: FitnessFunct[];
+  protected readonly nGenes: number;
+  protected readonly fitness: FitnessFunct[];
 
-  public timeOutMS = Duration.seconds(30);
-  public nRounds = NRounds.LARGE;
-  public nTrack = NTrack.MEDIUM;
-  public minImprove = MinImprove.SENSITIVE;
+  public readonly timeOutMS   = Duration.seconds(30);
+  public readonly nRounds     = NRounds.LARGE;
+  private readonly nTrack     = NTrack.TINY;
+  private readonly minImprove = MinImprove.SENSITIVE;
 
-  public popSize = PopSize.MEDIUM;
-  public weights: Float64Array | Float32Array | number[];
+  public readonly popSize = PopSize.MEDIUM;
+  public readonly weights: Float64Array | Float32Array | number[];
 
   // dynamic getter generation
-  public pMutate!: number;
-  public nElite!: number;
-  public nMutations!: number;
+  public readonly pMutate!: number;
+  public readonly nElite!: number;
+  public readonly nMutations!: number;
 
   // check if NaN returned
   // TODO public readonly validateFitness = true;
 
+  // @ts-ignore
   protected oldPop: TypedArray;
   protected readonly pop: TypedArray;
   protected readonly idxs: Uint32Array;
@@ -308,7 +317,7 @@ export class GeneticAlgorithm extends EventEmitter {
 
   protected readonly randGeneVal: () => number;
 
-  protected readonly log: (...msg: any[]) => any;
+  protected readonly log: (...msg: any[]) => any = console.log;
   private readonly logLvl = LogLvl.SILENT;
 
   public startTm = -Infinity;
@@ -326,8 +335,6 @@ export class GeneticAlgorithm extends EventEmitter {
     this.fitness = Array.isArray(fitness) ? fitness : [fitness];
 
     this.weights = opts.weights === undefined ? arrays.f64(this.fitness.length).fill(1) : opts.weights;
-
-    this.log = opts.log === undefined ? console.log : opts.log;
 
     Object.assign(this, opts);
 
@@ -387,18 +394,16 @@ export class GeneticAlgorithm extends EventEmitter {
                                                            .map((_, cIdx) => this.fitness[fIdx](this.pop.subarray(cIdx * nGenes, cIdx * nGenes + nGenes)))
                                             });
 
-    const maxScore: TypedArray = arrays.f64(this.fitness.length)
-                                       .map((_, idx) =>
-                                         this.scores[idx]
-                                             .reduce( (x1: number, x2: number) => Math.max(x1, x2)));
+    // max scores for every objective
+    const maxScore: Float64Array = arrays.f64(this.fitness.length)
+                                         .map((_, idx) => this.scores[idx].reduce( (x1: number, x2: number) => Math.max(x1, x2)));
 
-    // scores of fittest candidates for every objective
+    // scores of `nTrack` fittest candidates for every objective
     this.bestScores =
-        Array(this.fitness.length)
-            .fill(0)
-            .map((_, fIdx) =>
-                     arrays.f64(this.nTrack)
-                           .map((_, idx) => maxScore[fIdx] + idx * this.minImprove * 10000));
+        Array(this.fitness.length).fill(0)
+                                  .map((_, fIdx) =>
+                                           arrays.f64(this.nTrack) // pretend progress was made to avoid quitting on 1st round
+                                                 .map((_, idx) => maxScore[fIdx] + idx * this.minImprove * 10000));
 
 
     this.idxs.sort(this.compare.bind(this)); // it's the idxs that are sorted based on scores
@@ -480,12 +485,12 @@ export class GeneticAlgorithm extends EventEmitter {
     return this.pop.subarray(offset, offset + this.nGenes);
   }
 
-  public get bestScore(): TypedArray {
+  public get bestScore(): Float64Array {
     const scoresForEveryObj = arrays.f64(this.fitness.length);
+    const idx = this.rIdx % this.nTrack;
     for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
-      scoresForEveryObj[fIdx] = this.bestScores[fIdx][this.rIdx % this.nTrack];
+      scoresForEveryObj[fIdx] = this.bestScores[fIdx][idx];
     }
-    // console.log('rIdx', this.rIdx, 'best score for objective #1', scoresForEveryObj[0]);
     return scoresForEveryObj;
   }
 
@@ -575,11 +580,10 @@ export class GeneticAlgorithm extends EventEmitter {
       this.rIdx++;
 
       // get score for every objective by getting the value from the best candidate
+      const currRoundScoreIdx = this.rIdx % this.nTrack;
       for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
-        this.bestScores[fIdx][this.rIdx % this.nTrack] =
-            this.scores[fIdx].reduce((s1: number, s2: number) => {
-              return Math.max(s1, s2);
-            });
+        this.bestScores[fIdx][currRoundScoreIdx] =
+            this.scores[fIdx].reduce((s1: number, s2: number) => Math.max(s1, s2));
       }
 
       this.oldPop = this.pop.map((val: number) => val);
