@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d674af68-e813-448a-ba60-6492f755356c" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/index.test.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/index.ts" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -324,7 +322,7 @@
       <workItem from="1568403134549" duration="3004000" />
       <workItem from="1568406443626" duration="6119000" />
       <workItem from="1568445034051" duration="13237000" />
-      <workItem from="1568482027781" duration="7734000" />
+      <workItem from="1568482027781" duration="8152000" />
     </task>
     <task id="LOCAL-00001" summary="Line seps">
       <created>1568403658495</created>
@@ -431,7 +429,14 @@
       <option name="project" value="LOCAL" />
       <updated>1568486913810</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="Add test that checks if ga does well on simple problems">
+      <created>1568489796633</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1568489796633</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -483,7 +488,8 @@
     <MESSAGE value="More tests" />
     <MESSAGE value="Advance time tests" />
     <MESSAGE value="JSDOC" />
-    <option name="LAST_COMMIT_MESSAGE" value="JSDOC" />
+    <MESSAGE value="Add test that checks if ga does well on simple problems" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add test that checks if ga does well on simple problems" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
