@@ -13,12 +13,61 @@
  * here is a minimal polyfill for the core `.on` and `.emit` methods in
  * the events.EventEmitter class.
  */
-type EventHandler = (...args: any[]) => any;
+export type EventListener = (...args: any[]) => any;
 
-export type RandGeneValFunc = (gene: number, gIdx: number) => number;
+export const LogLvl = Object.freeze({
+  SILENT:  0,
+  NORMAL:  1,
+  VERBOSE: 2,
+});
+
+export const PopSize = Object.freeze({
+  LARGE: 1000,
+  MEDIUM: 300,
+  SMALL:  100,
+});
+
+export const NRounds = Object.freeze({
+  LARGE:  1E6,
+  MEDIUM: 1E5,
+  SMALL:  1E4,
+});
+
+export const MinImprove = Object.freeze({
+  SENSITIVE:   1E-6,
+  MEDIUM:      1E-4,
+  INSENSITIVE: 1E-2,
+});
+
+export const NTrack = Object.freeze({
+  LARGE:  300,
+  MEDIUM: 100,
+  SMALL:   50,
+});
+
+export const NElite = Object.freeze({
+  ADAPTIVE: { start:  0.05, end: 0.150 },
+  SMALL:  0.001,
+  MEDIUM: 0.050,
+  LARGE:  0.150,
+});
+
+export const PMutate = Object.freeze({
+  ADAPTIVE: { start:  0.10, end: 0.010, whenFit: 'increases' as Behaviour },
+  SMALL:  0.001,
+  MEDIUM: 0.010,
+  LARGE:  0.100,
+});
+
+export const NMutations = Object.freeze({
+  ADAPTIVE: { start: 10.00, end: 1.000, whenFit: 'decreases' as Behaviour },
+  SMALL:  1,
+  MEDIUM: 3,
+  LARGE:  7,
+});
 
 export class EventEmitter {
-  private readonly events: Map<string, EventHandler[]> = new Map();
+  private readonly events: Map<string, EventListener[]> = new Map();
 
   public emit(e: string, ...args: any[]): boolean {
     const ouput = this.events.get(e) !== undefined;
@@ -27,13 +76,13 @@ export class EventEmitter {
     return ouput;
   }
 
-  public on(e: string, f: EventHandler): this {
+  public on(e: string, f: EventListener): this {
     this.listeners(e, false).push(f);
     this.emit('newListener');
     return this;
   }
 
-  public addListener(e: string, f: EventHandler): this {
+  public addListener(e: string, f: EventListener): this {
     return this.on(e, f);
   }
 
@@ -45,18 +94,18 @@ export class EventEmitter {
     return this.listeners(e, false).length;
   }
 
-  public off(e: string, f: EventHandler): this {
+  public off(e: string, f: EventListener): this {
     const fs = this.listeners(e, false);
     const idx = fs.findIndex(l => l === f);
     fs.splice(idx, 1);
     return this;
   }
 
-  public removeListener(e: string, f: EventHandler): this {
+  public removeListener(e: string, f: EventListener): this {
     return this.off(e, f);
   }
 
-  public listeners(e: string, clone = true): EventHandler[] {
+  public listeners(e: string, clone = true): EventListener[] {
     let output = this.events.get(e);
     if (output === undefined) {
       output = [];
@@ -65,7 +114,7 @@ export class EventEmitter {
     return clone ? [...output] : output;
   }
 
-  public prependListener(e: string, f: EventHandler): this {
+  public prependListener(e: string, f: EventListener): this {
     this.listeners(e, false).unshift(f);
     return this;
   }
@@ -152,19 +201,19 @@ export type TypedArray = Uint8Array
                        | Float64Array;
 export type FitnessFunct = (candidate: TypedArray) => number;
 export type UserOpts = Partial<{
-  logLvl: number,
-  minImprove: number,
   nElite: NumOpt,
   nMutations: NumOpt,
+  pMutate: NumOpt,
+  minImprove: number,
   nRounds: number,
   nTrack: number,
-  pMutate: NumOpt,
   popSize: number,
-  boundUpper: number,
-  boundLower: number,
   timeOutMS: number,
   weights: Float64Array | Float32Array | number[],
-  validateFitness: boolean,
+  // TODO validateFitness: boolean,
+  logLvl: 0 | 1 | 2,
+  randGeneVal: () => number | [number, number];
+  log: (...msg: string[]) => void;
 }>;
 type NumOptResolved = {
                         start: number,
@@ -172,7 +221,7 @@ type NumOptResolved = {
                         whenFit: Behaviour,
                       };
 
-function getNumOpt(percentageOf: number | undefined, o: NumOpt): { start: number, end: number, whenFit: Behaviour } {
+function getNumOpt(percentageOf: number | undefined, o: NumOpt): NumOptResolved {
   if (o.constructor.name === 'Number') {
     return getNumOpt(percentageOf, [o, o] as [number, number]);
   } else if (o.constructor.name === 'Array') {
@@ -246,21 +295,16 @@ const arrays = {
 };
 
 export class GeneticAlgorithm extends EventEmitter {
-  public nGenes: number;
+  public readonly nGenes: number;
   public fitness: FitnessFunct[];
   public dtype: Dtype;
 
-  public timeOutMS: number;
-  public nRounds: number;
-  public nTrack: number;
-  public minImprove: number;
+  public timeOutMS = Duration.seconds(30);
+  public nRounds = NRounds.LARGE;
+  public nTrack = NTrack.MEDIUM;
+  public minImprove = MinImprove.SENSITIVE;
 
-  public boundLower: number;
-  public boundUpper: number;
-  public randRange: number;
-
-  public popSize: number;
-  // value within search space bounds (guess from dtype)
+  public popSize = PopSize.MEDIUM;
   public weights: Float64Array | Float32Array | number[];
 
   // dynamic getter generation
@@ -268,17 +312,26 @@ export class GeneticAlgorithm extends EventEmitter {
   public nElite!: number;
   public nMutations!: number;
 
-  private oldPop: TypedArray;
-  protected pop: TypedArray;
-  protected idxs: Uint32Array;
-  protected scores: Float64Array[];
-  protected bestScores: Float64Array[];
+  // check if NaN returned
+  // TODO public readonly validateFitness = true;
 
-  public startTm: number;
-  public rIdx: number;
-  public rank: number;
-  public cIdx: number;
-  public op: Op;
+  protected oldPop: TypedArray;
+  protected readonly pop: TypedArray;
+  protected readonly idxs: Uint32Array;
+  protected readonly scores: Float64Array[];
+  protected readonly bestScores: Float64Array[];
+
+  protected readonly randGeneVal: () => number;
+
+  protected readonly log: (...msg: string[]) => void;
+  private readonly logLvl = LogLvl.SILENT;
+
+  public startTm = -Infinity;
+  public rIdx    = 0;
+  public rank    = 0;
+  public cIdx    = 0;
+  public op: Op  = 'mutate';
+
 
   public constructor(fitness: FitnessFunct | FitnessFunct[], nGenes: number, dtype: Dtype = 'f64', opts: UserOpts = {}) {
     super();
@@ -289,26 +342,16 @@ export class GeneticAlgorithm extends EventEmitter {
     // allow for many fitness functions
     this.fitness = Array.isArray(fitness) ? fitness : [fitness];
 
+    this.weights = opts.weights === undefined ? arrays.f64(this.fitness.length).fill(1) : opts.weights;
+
+    this.log = opts.log === undefined ? console.log : opts.log;
+
     Object.assign(this, {
       // how important each objective is
-      weights: arrays.f64(this.fitness.length).fill(1),
-      minImprove:      1E-6,
-      nRounds:         1E6,
-      nTrack:          100,
-      popSize:         300,
-      nElite:          { start:  0.05, end: 0.150 },
-      pMutate:         { start:  0.10, end: 0.010, whenFit: 'increases' as Behaviour },
-      nMutations:      { start: 10.00, end: 1.000, whenFit: 'decreases' as Behaviour },
-      logLvl:          0,
-      timeOutMS:       Duration.seconds(30),
-      // check if NaN returned
-      validateFitness: false,
+      nElite:     NElite.ADAPTIVE,
+      pMutate:    PMutate.ADAPTIVE,
+      nMutations: NMutations.ADAPTIVE,
       ...opts,
-      op:     'mutate',
-      rIdx:    0,
-      startTm: -Infinity,
-      rank:    0,
-      cIdx:    0,
     });
 
     // register getters from user config merged with defaults into `this`
@@ -317,30 +360,39 @@ export class GeneticAlgorithm extends EventEmitter {
     optToGetter(this, 'pMutate', getNumOpt(undefined, this.pMutate));
 
     // if rand gene value supplier was not given make one using rand uniform distribution with bounds based on `dtype`
-    if (this.randGeneVal === undefined) {
+    if (opts.randGeneVal === undefined) {
       const nBits: 8 | 16 | 32 | 64 = dtype.endsWith('8') ? 8 : dtype.endsWith('16') ? 16 : dtype.endsWith('32') ? 32 : 64;
 
+      let boundUpper: number;
+
       // intelligently compute min and max bounds of search space based on `dtype`
-      if (this.boundUpper === undefined) {
-        if (dtype.startsWith('f')) {
-          this.boundUpper = (3.4 * (10 ** 38) - 1) / 1E4;
-        } else if (dtype.startsWith('i')) {
-          this.boundUpper = 2 ** (nBits - 1) - 1;
-        } else /* if (dtype.startsWith('u')) */ {
-          this.boundUpper = 2 ** nBits - 1;
-        }
+      if (dtype.startsWith('f')) {
+        boundUpper = (3.4 * (10 ** 38) - 1) / 1E4;
+      } else if (dtype.startsWith('i')) {
+        boundUpper = 2 ** (nBits - 1) - 1;
+      } else /* if (dtype.startsWith('u')) */ {
+        boundUpper = 2 ** nBits - 1;
       }
 
-      if (this.boundLower === undefined) {
-        if (dtype.startsWith('f')) {
-          this.boundLower = (1.2 * (10 ** -38)) / 1E4;
-        } else if (dtype.startsWith('i')) {
-          this.boundLower = -(2 ** (nBits - 1)) + 1;
-        } else /* if (dtype.startsWith('u')) */ {
-          this.boundLower = 0;
-        }
+      let boundLower: number;
+
+      if (dtype.startsWith('f')) {
+        boundLower = (1.2 * (10 ** -38)) / 1E4;
+      } else if (dtype.startsWith('i')) {
+        boundLower = -(2 ** (nBits - 1)) + 1;
+      } else /* if (dtype.startsWith('u')) */ {
+        boundLower = 0;
       }
-      this.randRange  = this.boundUpper - this.boundLower;
+      const randRange = boundUpper - boundLower;
+      this.randGeneVal = () => boundLower + randRange * Math.random();
+
+    } else if (Array.isArray(opts.randGeneVal)) {
+      const [boundLower, boundUpper] = opts.randGeneVal;
+      const randRange = boundUpper - boundLower;
+      this.randGeneVal = () => boundLower + randRange * Math.random();
+
+    } else /* if func */ {
+      this.randGeneVal = opts.randGeneVal as () => number;
     }
 
     this.pop = this.createPop();
@@ -359,7 +411,8 @@ export class GeneticAlgorithm extends EventEmitter {
 
     const maxScore: TypedArray = arrays.f64(this.fitness.length)
                                        .map((_, idx) =>
-                                         this.scores[idx].reduce( (x1: number, x2: number) => Math.max(x1, x2)));
+                                         this.scores[idx]
+                                             .reduce( (x1: number, x2: number) => Math.max(x1, x2)));
 
     // scores of fittest candidates for every objective
     this.bestScores =
@@ -372,11 +425,11 @@ export class GeneticAlgorithm extends EventEmitter {
 
     this.idxs.sort(this.compare.bind(this)); // it's the idxs that are sorted based on scores
 
-    if (this.logLvl >= 1) {
-      this.on('start', () => console.log('started genetic algorithm at', new Date(), 'with opts', this));
-      this.on('end', () => console.log('finished running genetic algorithm at', new Date(), `took ${this.timeTakenMS / 1000}sec, did ${this.rIdx} rounds`));
+    if (this.logLvl >= LogLvl.NORMAL) {
+      this.on('start', () => this.log('started genetic algorithm at', new Date(), 'with opts', this));
+      this.on('end', () => this.log('finished running genetic algorithm at', new Date(), `took ${this.timeTakenMS / 1000}sec, did ${this.rIdx} rounds`));
       for (const reason of ['stuck', 'rounds', 'timeout']) {
-        this.on(reason, () => console.log(`[${reason}]`));
+        this.on(reason, () => this.log(`[${reason}]`));
       }
     }
 
@@ -384,20 +437,20 @@ export class GeneticAlgorithm extends EventEmitter {
       const lWidth = Object.keys(obj)
                            .map((k: string) => k.length)
                            .reduce((x1: number, x2: number) => Math.max(x1, x2));
-      console.log(heading.toUpperCase());
+      this.log(heading.toUpperCase());
       if (doUnderline) {
-        console.log('-'.repeat(heading.length));
+        this.log('-'.repeat(heading.length));
       }
       for (const k of Object.keys(obj)) {
         // @ts-ignore
-        console.log(k.padEnd(lWidth, ' '), ' ', obj[k].toString());
+        this.log(k.padEnd(lWidth, ' '), ' ', obj[k].toString());
       }
       if (doNL) {
-        console.log('');
+        this.log('');
       }
     };
 
-    if (this.logLvl >= 1) {
+    if (this.logLvl >= LogLvl.NORMAL) {
       this.on('score', () => {
         fmtTable(
             `round #${this.rIdx} (${(this.percentageDone * 100).toFixed(0)}% done)`,
@@ -407,7 +460,7 @@ export class GeneticAlgorithm extends EventEmitter {
       });
     }
 
-    if (this.logLvl >= 2) {
+    if (this.logLvl >= LogLvl.VERBOSE) {
       this.on('op', () => {
         const obj: { pMutate: string | number, nMutations: undefined | string | number } = { pMutate : `${(this.pMutate * 100).toFixed(0)}%`, nMutations: '' };
         if (this.op === 'mutate') {
@@ -417,10 +470,6 @@ export class GeneticAlgorithm extends EventEmitter {
         fmtTable(heading, obj, false, true);
       });
     }
-  }
-
-  public randGeneVal(gene: number, gIdx: number): number {
-    return this.boundLower + this.randRange * Math.random();
   }
 
   public get bestCand(): TypedArray { return this.nthBestCand(0); }
@@ -452,7 +501,7 @@ export class GeneticAlgorithm extends EventEmitter {
     for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
       const offset = cIdx * this.nGenes;
       for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
-        pop[offset + gIdx] = this.randGeneVal(pop[offset + gIdx], gIdx);
+        pop[offset + gIdx] = this.randGeneVal();
       }
     }
     return pop;
@@ -593,7 +642,7 @@ export class GeneticAlgorithm extends EventEmitter {
     const candStart = this.cIdx * this.nGenes;
     for (let i = 0; i < this.nMutations; i++) {
       const gIdx                 = Math.floor(Math.random() * this.nGenes);
-      this.pop[candStart + gIdx] = this.randGeneVal(this.pop[candStart + gIdx], gIdx);
+      this.pop[candStart + gIdx] = this.randGeneVal();
     }
   }
 
