@@ -310,10 +310,10 @@ export class GeneticAlgorithm extends EventEmitter {
 
   // @ts-ignore
   protected oldPop: TypedArray;
-  protected readonly pop: TypedArray;
-  protected readonly idxs: Uint32Array;
-  protected readonly scores: Float64Array[];
-  protected readonly bestScores: Float64Array[];
+  public readonly pop: TypedArray;
+  public readonly idxs: Uint32Array;
+  public readonly scores: Float64Array[];
+  public readonly bestScores: Float64Array[];
 
   protected readonly randGeneVal: () => number;
 
@@ -437,7 +437,6 @@ export class GeneticAlgorithm extends EventEmitter {
       });
     }
   }
-
 
   optToGetter(name: string, { start, end, whenFit }: NumOptResolved, afterFunct?: (n: number) => number) {
     if (start === end) {

@@ -59,7 +59,7 @@
     "array-bracket-newline": [
       1,
       {
-        "minItems": 4,
+        "minItems": 2,
         "multiline": true
       }
     ],
@@ -67,7 +67,7 @@
     "array-element-newline": [
       1,
       {
-        "minItems": 4,
+        "minItems": 2,
         "multiline": true
       }
     ],
