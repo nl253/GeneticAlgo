@@ -213,7 +213,7 @@ export type UserOpts = Partial<{
   // TODO validateFitness: boolean,
   logLvl: 0 | 1 | 2,
   randGeneVal: () => number | [number, number];
-  log: (...msg: any[]) => void;
+  log: (...msg: any[]) => any;
 }>;
 type NumOptResolved = {
                         start: number,
@@ -249,7 +249,7 @@ function getNumOpt(percentageOf: number | undefined, o: NumOpt): NumOptResolved 
   return opt;
 }
 
-function fmtTable(heading: string, obj: object = {}, doUnderline: boolean = false, doNL: boolean = true, log: (...msg: any[]) => void = console.log): void {
+function fmtTable(heading: string, obj: object = {}, doUnderline: boolean = false, doNL: boolean = true, log: (...msg: any[]) => any = console.log): void {
   const lWidth = Object.keys(obj)
     .map((k: string) => k.length)
     .reduce((x1: number, x2: number) => Math.max(x1, x2));
@@ -306,7 +306,7 @@ export class GeneticAlgorithm extends EventEmitter {
 
   protected readonly randGeneVal: () => number;
 
-  protected readonly log: (...msg: any[]) => void;
+  protected readonly log: (...msg: any[]) => any;
   private readonly logLvl = LogLvl.SILENT;
 
   public startTm = -Infinity;
@@ -402,8 +402,8 @@ export class GeneticAlgorithm extends EventEmitter {
     this.idxs.sort(this.compare.bind(this)); // it's the idxs that are sorted based on scores
 
     if (this.logLvl >= LogLvl.NORMAL) {
-      this.on('start', () => this.log('started genetic algorithm at', new Date(), 'with opts', this));
-      this.on('end', () => this.log('finished running genetic algorithm at', new Date(), `took ${this.timeTakenMS / 1000}sec, did ${this.rIdx} rounds`));
+      this.on('start', () => this.log('started genetic algorithm at ', new Date(), ' with opts ', this));
+      this.on('end', () => this.log('finished running genetic algorithm at ', new Date(), ` took ${this.timeTakenMS / 1000}sec, did ${this.rIdx} rounds`));
       for (const reason of ['stuck', 'rounds', 'timeout']) {
         this.on(reason, () => this.log(`[${reason}]`));
       }
