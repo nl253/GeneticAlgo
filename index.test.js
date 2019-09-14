@@ -3,12 +3,13 @@
 // TODO check that pElite, pMutate and nMutations are correctly changing
 const { GeneticAlgorithm, Duration } = require('./index');
 
-const DEFAULT_DURATION = Duration.seconds(2);
+const DEFAULT_DURATION = Duration.seconds(1);
 const DEFAULT_EVENT = 'round';
 const DEFAULT_DELAY = 300;
 const NGENES = 100;
+const DEFAULT_POPSIZE = 200;
 
-const dtypes = [
+const DATATYPES = [
   'u8',
   'u16',
   'u32',
@@ -19,42 +20,42 @@ const dtypes = [
   'f64',
 ];
 
-/**
- * @param {Function[]} checks
- * @param {{}} opts
- * @param {String} event
- * @param {Number} duration
- * @param {String} dtype
- * @return {(Uint8Array | Uint16Array | Uint32Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array)[]}
- */
-function simulate(
-  checks = [],
-  opts = {},
-  event = DEFAULT_EVENT,
-  duration = DEFAULT_DURATION,
-  dtype = 'u32',
-) {
-  const fitness = candidate => candidate.reduce((x, y) => x + y, 0);
-  const ga = new GeneticAlgorithm(fitness, NGENES, dtype, Object.assign({timeOutMS: duration}, opts));
-  for (const f of checks) {
-    ga.on(DEFAULT_EVENT, () => f(ga));
-  }
-  return [...ga.search()];
-}
+const FUNCTS = [
+  candidate => candidate.reduce((x, y) => x + y, 0),
+  candidate => candidate.reduce((x, y) => x - y, 0),
+  [
+    candidate => candidate.reduce((x, y) => x + y, 0),
+    candidate => candidate.reduce((x, y) => x - y, 0),
+  ],
+];
 
 /**
  * @param {Function[]} checks
  * @param {{}} opts
  * @param {String} event
- * @param {Number[]} durations
+ * @param {String[]} dtypes
+ * @param {(Function|Function[])[]} fitnessFuncts
+ * @param {Number} duration
  */
 function simulateAll(
   checks = [],
   opts = {},
   event = DEFAULT_EVENT,
-  durations = Array(dtypes.length).fill(DEFAULT_DURATION),
+  dtypes = DATATYPES,
+  fitnessFuncts = FUNCTS,
 ) {
-  return dtypes.forEach((dtype, idx) => simulate(checks, opts, event, durations[idx], dtype));
+  return dtypes.forEach((dtype, idx) => fitnessFuncts.forEach((fitness) => {
+    const ga = new GeneticAlgorithm(
+      fitness,
+      NGENES,
+      dtype,
+      Object.assign({ timeOutMS: DEFAULT_DURATION, popSize: DEFAULT_POPSIZE }, opts),
+    );
+    for (const f of checks) {
+      ga.on(event, () => f(ga));
+    }
+    Array.from(ga.search());
+  }));
 }
 
 test('search is a public method on GeneticAlgorithm', () => {
@@ -101,6 +102,45 @@ test('pop TYPED ARRAY is valid and defined (and public) when starting', () => {
     ga => expect(ga.pop).not.toContain(Infinity),
     ga => expect(ga.pop).not.toContain(-Infinity),
     ga => expect(ga.pop).not.toContain(NaN),
+  ], 'start');
+});
+
+test('idxs TYPED ARRAY is valid and defined (and public) when starting', () => {
+  simulateAll([
+    ga => expect(ga).toHaveProperty('idxs'),
+    ga => expect(ga.idxs).toHaveProperty('length'),
+    ga => expect(ga.idxs.length > 0).toBeTruthy(),
+    ga => expect(ga.idxs).not.toContain(null),
+    ga => expect(ga.idxs).not.toContain(undefined),
+    ga => expect(ga.idxs).not.toContain(Infinity),
+    ga => expect(ga.idxs).not.toContain(-Infinity),
+    ga => expect(ga.idxs).not.toContain(NaN),
+  ], 'start');
+});
+
+test('bestScores TYPED ARRAY is valid and defined (and public) when starting', () => {
+  simulateAll([
+    ga => expect(ga).toHaveProperty('bestScores'),
+    ga => expect(ga.bestScores).toHaveProperty('length'),
+    ga => expect(ga.bestScores.length > 0).toBeTruthy(),
+    ga => expect(ga.bestScores).not.toContain(null),
+    ga => expect(ga.bestScores).not.toContain(undefined),
+    ga => expect(ga.bestScores).not.toContain(Infinity),
+    ga => expect(ga.bestScores).not.toContain(-Infinity),
+    ga => expect(ga.bestScores).not.toContain(NaN),
+  ], 'start');
+});
+
+test('scores TYPED ARRAY is valid and defined (and public) when starting', () => {
+  simulateAll([
+    ga => expect(ga).toHaveProperty('scores'),
+    ga => expect(ga.scores).toHaveProperty('length'),
+    ga => expect(ga.scores.length > 0).toBeTruthy(),
+    ga => expect(ga.scores).not.toContain(null),
+    ga => expect(ga.scores).not.toContain(undefined),
+    ga => expect(ga.scores).not.toContain(Infinity),
+    ga => expect(ga.scores).not.toContain(-Infinity),
+    ga => expect(ga.scores).not.toContain(NaN),
   ], 'start');
 });
 
@@ -158,4 +198,25 @@ test('best candidate (0th best) is accessible and is not empty', () => {
     ga => expect(ga).toHaveProperty('nthBestCand'),
     ga => expect(ga.nthBestCand(0)).toStrictEqual(ga.bestCand),
   ]);
+});
+
+
+describe('ga does well on simple problems', () => {
+  const f = (cand) => cand.reduce((x, y) => x + y, 0);
+  for (const dt of ['u', 'i']) {
+    for (const nBits of [8, 16, 32]) {
+      const bestPossible = 2 ** (dt === 'u' ? nBits : nBits - 1) * NGENES;
+      const dtype = `${dt}${nBits}`;
+      const timeSec = 5;
+      test(`dtype = ${dtype}, best possible = ${bestPossible} (${timeSec} sec)`, () => {
+        simulateAll(
+          [ga => expect(f(ga.bestCand) / bestPossible).toBeGreaterThan(0.85)],
+          { timeOutMS: Duration.seconds(timeSec) },
+          'end',
+          [dtype],
+          [f],
+        );
+      });
+    }
+  }
 });

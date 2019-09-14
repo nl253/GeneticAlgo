@@ -315,7 +315,7 @@ export class GeneticAlgorithm extends EventEmitter {
   public readonly scores: Float64Array[];
   public readonly bestScores: Float64Array[];
 
-  protected readonly randGeneVal: () => number;
+  public readonly randGeneVal: () => number;
 
   protected readonly log: (...msg: any[]) => any = console.log;
   private readonly logLvl = LogLvl.SILENT;

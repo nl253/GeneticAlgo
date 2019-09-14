@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d674af68-e813-448a-ba60-6492f755356c" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/index.test.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/index.ts" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -61,7 +63,7 @@
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="nodejs_package_manager_path" value="npm" />
     <property name="restartRequiresConfirmation" value="false" />
-    <property name="settings.editor.selected.configurable" value="preferences.sourceCode.TypeScript" />
+    <property name="settings.editor.selected.configurable" value="IntelliLang.Configuration" />
     <property name="ts.external.directory.path" value="C:\Users\Kier\Documents\GeneticAlgo\node_modules\typescript\lib" />
     <property name="typescript.add.unambiguous.imports.on.the.fly" value="true" />
   </component>
@@ -82,7 +84,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Jest.time and % done are advancing">
+  <component name="RunManager" selected="Jest.ga does well on simple problems (1)">
     <configuration name="TEST" type="JavaScriptTestRunnerJest" temporary="true">
       <node-interpreter value="project" />
       <node-options value="" />
@@ -100,6 +102,32 @@
       <envs />
       <scope-kind value="TEST_FILE" />
       <test-file value="$PROJECT_DIR$/index.test.js" />
+      <method v="2" />
+    </configuration>
+    <configuration name="ga does well on simple problems (1)" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <node-options value="" />
+      <jest-package value="$PROJECT_DIR$/node_modules/jest" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs />
+      <scope-kind value="SUITE" />
+      <test-file value="$PROJECT_DIR$/index.test.js" />
+      <test-names>
+        <test-name value="ga does well on simple problems" />
+      </test-names>
+      <method v="2" />
+    </configuration>
+    <configuration name="ga does well on simple problems" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <node-options value="" />
+      <jest-package value="$PROJECT_DIR$/node_modules/jest" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs />
+      <scope-kind value="TEST" />
+      <test-file value="$PROJECT_DIR$/index.test.js" />
+      <test-names>
+        <test-name value="ga does well on simple problems" />
+      </test-names>
       <method v="2" />
     </configuration>
     <configuration name="time and % done are advancing" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
@@ -269,11 +297,15 @@
       <item itemvalue="npm.example:simple" />
       <item itemvalue="npm.build:examples" />
       <item itemvalue="Jest.time and % done are advancing" />
+      <item itemvalue="Jest.ga does well on simple problems" />
+      <item itemvalue="Jest.ga does well on simple problems (1)" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Jest.time and % done are advancing" />
+        <item itemvalue="Jest.ga does well on simple problems (1)" />
+        <item itemvalue="Jest.ga does well on simple problems" />
         <item itemvalue="Jest.TEST" />
+        <item itemvalue="Jest.time and % done are advancing" />
         <item itemvalue="npm.build:examples" />
       </list>
     </recent_temporary>
@@ -292,7 +324,7 @@
       <workItem from="1568403134549" duration="3004000" />
       <workItem from="1568406443626" duration="6119000" />
       <workItem from="1568445034051" duration="13237000" />
-      <workItem from="1568482027781" duration="4873000" />
+      <workItem from="1568482027781" duration="7734000" />
     </task>
     <task id="LOCAL-00001" summary="Line seps">
       <created>1568403658495</created>
@@ -392,7 +424,14 @@
       <option name="project" value="LOCAL" />
       <updated>1568486651617</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="JSDOC">
+      <created>1568486913810</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1568486913810</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -443,7 +482,8 @@
     <MESSAGE value="Add tests" />
     <MESSAGE value="More tests" />
     <MESSAGE value="Advance time tests" />
-    <option name="LAST_COMMIT_MESSAGE" value="Advance time tests" />
+    <MESSAGE value="JSDOC" />
+    <option name="LAST_COMMIT_MESSAGE" value="JSDOC" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
