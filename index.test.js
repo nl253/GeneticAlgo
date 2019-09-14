@@ -1,3 +1,6 @@
+// TODO check that pop is modified on mutate and crossover
+// TODO check that compare does correct sorting on a 2-element array
+// TODO check that pElite, pMutate and nMutations are correctly changing
 const { GeneticAlgorithm, Duration } = require('./index');
 
 const DEFAULT_DURATION = Duration.seconds(2);
@@ -16,6 +19,14 @@ const dtypes = [
   'f64',
 ];
 
+/**
+ * @param {Function[]} checks
+ * @param {{}} opts
+ * @param {String} event
+ * @param {Number} duration
+ * @param {String} dtype
+ * @return {(Uint8Array | Uint16Array | Uint32Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array)[]}
+ */
 function simulate(
   checks = [],
   opts = {},
@@ -31,6 +42,12 @@ function simulate(
   return [...ga.search()];
 }
 
+/**
+ * @param {Function[]} checks
+ * @param {{}} opts
+ * @param {String} event
+ * @param {Number[]} durations
+ */
 function simulateAll(
   checks = [],
   opts = {},
