@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d674af68-e813-448a-ba60-6492f755356c" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.eslintrc.json" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintrc.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/index.test.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/index.ts" afterDir="false" />
     </list>
@@ -85,7 +83,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Jest.TEST">
+  <component name="RunManager" selected="Jest.time and % done are advancing">
     <configuration name="TEST" type="JavaScriptTestRunnerJest" temporary="true">
       <node-interpreter value="project" />
       <node-options value="" />
@@ -103,6 +101,19 @@
       <envs />
       <scope-kind value="TEST_FILE" />
       <test-file value="$PROJECT_DIR$/index.test.js" />
+      <method v="2" />
+    </configuration>
+    <configuration name="time and % done are advancing" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <node-options value="" />
+      <jest-package value="$PROJECT_DIR$/node_modules/jest" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs />
+      <scope-kind value="TEST" />
+      <test-file value="$PROJECT_DIR$/index.test.js" />
+      <test-names>
+        <test-name value="time and % done are advancing" />
+      </test-names>
       <method v="2" />
     </configuration>
     <configuration name="math.js" type="NodeJSConfigurationType" nameIsGenerated="true" path-to-js-file="examples/math.js" working-dir="$PROJECT_DIR$">
@@ -258,9 +269,11 @@
       <item itemvalue="npm.example:parallel" />
       <item itemvalue="npm.example:simple" />
       <item itemvalue="npm.build:examples" />
+      <item itemvalue="Jest.time and % done are advancing" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Jest.time and % done are advancing" />
         <item itemvalue="Jest.TEST" />
         <item itemvalue="npm.build:examples" />
       </list>
@@ -280,7 +293,7 @@
       <workItem from="1568403134549" duration="3004000" />
       <workItem from="1568406443626" duration="6119000" />
       <workItem from="1568445034051" duration="13237000" />
-      <workItem from="1568482027781" duration="4260000" />
+      <workItem from="1568482027781" duration="4606000" />
     </task>
     <task id="LOCAL-00001" summary="Line seps">
       <created>1568403658495</created>
@@ -366,7 +379,14 @@
       <option name="project" value="LOCAL" />
       <updated>1568484641982</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="More tests">
+      <created>1568486327251</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1568486327251</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -415,7 +435,8 @@
     <MESSAGE value="Change void to any" />
     <MESSAGE value="Fix README" />
     <MESSAGE value="Add tests" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add tests" />
+    <MESSAGE value="More tests" />
+    <option name="LAST_COMMIT_MESSAGE" value="More tests" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

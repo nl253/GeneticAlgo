@@ -438,7 +438,7 @@ export class GeneticAlgorithm extends EventEmitter {
     }
   }
 
-  optToGetter(name: string, { start, end, whenFit }: NumOptResolved, afterFunct?: (n: number) => number) {
+  private optToGetter(name: string, { start, end, whenFit }: NumOptResolved, afterFunct?: (n: number) => number) {
     if (start === end) {
       // @ts-ignore
       this[name] = start;

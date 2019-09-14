@@ -108,6 +108,31 @@ test('scores are improving with time', () => {
   ]);
 });
 
+test('time and % done are advancing', () => {
+  simulateAll([
+    ga => {
+      const pDone1 = ga.percentageDone;
+      setTimeout(() => expect(ga.percentageDone).toBeGreaterThan(pDone1), DEFAULT_DELAY);
+    },
+    ga => {
+      const rIdx1 = ga.rIdx;
+      setTimeout(() => expect(ga.rIdx).toBeGreaterThan(rIdx1), DEFAULT_DELAY);
+    },
+    ga => {
+      const tm1 = ga.timeTakenMS;
+      setTimeout(() => expect(ga.timeTakenMS).toBeGreaterThan(tm1), DEFAULT_DELAY);
+    },
+    ga => {
+      const pDoneTime = ga.percentageDoneTime;
+      setTimeout(() => expect(ga.percentageDoneTime).toBeGreaterThan(pDoneTime), DEFAULT_DELAY);
+    },
+    ga => {
+      const pDoneRounds = ga.percentageDoneRounds;
+      setTimeout(() => expect(ga.percentageDoneRounds).toBeGreaterThan(pDoneRounds), DEFAULT_DELAY);
+    },
+  ]);
+});
+
 test('best candidate (0th best) is accessible and is not empty', () => {
   simulateAll([
     ga => expect(ga).toHaveProperty('bestCand'),
