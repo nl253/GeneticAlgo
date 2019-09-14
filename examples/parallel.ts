@@ -17,9 +17,13 @@ if (cluster.isMaster) {
 }
 
 // this is the worker code
-import { GeneticAlgorithm as GA } from '../index';
-
-const SEC = 1000;
+import {
+  Duration,
+  GeneticAlgorithm as GA,
+  LogLvl,
+  NMutations,
+  PopSize,
+} from '..';
 
 // @ts-ignore
 const fitness = xs => xs.reduce((x, y) => x + y, 0);
@@ -28,11 +32,12 @@ const nGenes  = 500;
 
 // randomness will ensure different config for every worker
 const opts = {
-  logLvl: 1,
-  nMutations: [1 + Math.floor(Math.random() * 5), 1],
+  logLvl: LogLvl.NORMAL,
+  // you don't need to use NMutations or PopSize, you can just specify a number
+  nMutations: [NMutations.TINY + Math.floor(Math.random() * NMutations.MEDIUM), NMutations.TINY],
   nElite:     [0.01, 0.01 + Math.random() * 0.4],
-  popSize:    50 + Math.floor(Math.random() * 1500),
-  timeOutMS:  20 * SEC,
+  popSize:    PopSize.TINY + Math.floor(Math.random() * PopSize.HUGE),
+  timeOutMS:  Duration.seconds(20),
 };
 
 // @ts-ignore

@@ -22,9 +22,11 @@ export const LogLvl = Object.freeze({
 });
 
 export const PopSize = Object.freeze({
+  HUGE: 1500,
   LARGE: 1000,
   MEDIUM: 300,
   SMALL:  100,
+  TINY:  50,
 });
 
 export const NRounds = Object.freeze({
@@ -61,8 +63,9 @@ export const PMutate = Object.freeze({
 
 export const NMutations = Object.freeze({
   ADAPTIVE: { start: 10.00, end: 1.000, whenFit: 'decreases' as Behaviour },
-  SMALL:  1,
-  MEDIUM: 3,
+  TINY:  1,
+  SMALL:  3,
+  MEDIUM: 5,
   LARGE:  7,
 });
 
@@ -71,8 +74,7 @@ export class EventEmitter {
 
   public emit(e: string, ...args: any[]): boolean {
     const ouput = this.events.get(e) !== undefined;
-    const fs = this.listeners(e, false);
-    Promise.all(fs.map(f => new Promise((resolve, reject) => resolve(f(...args)))));
+    this.listeners(e, false).forEach(f => f(...args));
     return ouput;
   }
 
@@ -211,7 +213,7 @@ export type UserOpts = Partial<{
   timeOutMS: number,
   weights: Float64Array | Float32Array | number[],
   // TODO validateFitness: boolean,
-  logLvl: 0 | 1 | 2,
+  logLvl: number,
   randGeneVal: () => number | [number, number];
   log: (...msg: any[]) => any;
 }>;
@@ -259,7 +261,7 @@ function fmtTable(heading: string, obj: object = {}, doUnderline: boolean = fals
   }
   for (const k of Object.keys(obj)) {
     // @ts-ignore
-    this.log(k.padEnd(lWidth, ' '), ' ', obj[k].toString());
+    log(k.padEnd(lWidth, ' '), ' ', obj[k].toString());
   }
   if (doNL) {
     log('');

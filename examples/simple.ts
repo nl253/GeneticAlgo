@@ -2,13 +2,11 @@
  * This is a trivial example where the task is to maximise the value of each gene.
  */
 import {
-  Dtype,
+  Dtype, Duration,
   FitnessFunct,
-  GeneticAlgorithm as GA,
+  GeneticAlgorithm as GA, LogLvl,
   UserOpts,
-} from './../index';
-
-const SEC = 1000;
+} from '..';
 
 const fitness: FitnessFunct = candidate => {
   // @ts-ignore
@@ -20,7 +18,10 @@ const fitness: FitnessFunct = candidate => {
 const nBits          = 32;
 const dtype: Dtype   = `u${nBits}` as Dtype;
 const nGenes         = 500;
-const opts: UserOpts = { timeOutMS: 30 * SEC, logLvl: 1 };
+const opts: UserOpts = {
+  timeOutMS: Duration.seconds(30),
+  logLvl: LogLvl.NORMAL,
+};
 
 const bestPossible = 2 ** nBits * nGenes;
 

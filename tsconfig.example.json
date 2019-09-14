@@ -1,17 +1,17 @@
 {
-  "files": ["index.ts"],
+  "files": [
+    "examples/simple.ts",
+    "examples/math.ts",
+    "examples/parallel.ts",
+    "examples/multiobjective.ts"
+  ],
   "compilerOptions": {
     "baseUrl": ".",
     "target": "es5",
     "module": "commonjs",
     "types": ["node"],
     "downlevelIteration": true,
-    "strict": true,
-    "allowJs": true,
-    "alwaysStrict": true,
-    "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
-    "noImplicitAny": true,
+    "strict": false,
     "listEmittedFiles": true,
     "removeComments": true,
     "newLine": "LF",

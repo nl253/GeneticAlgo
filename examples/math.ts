@@ -1,9 +1,13 @@
 /**
  * This example finds roots of an equation.
  */
-import { GeneticAlgorithm as GA, TypedArray } from '../index';
-
-const SEC = 1000;
+import {
+  GeneticAlgorithm as GA,
+  TypedArray,
+  Duration,
+  NMutations,
+  LogLvl,
+} from '..';
 
 const expr = (x1: number, x2: number, x3: number, x4: number, x5: number, x6: number) => (Math.log2(x1) * x2 ** x3 / x4) + x5 ** (Math.log2(x6));
 
@@ -23,9 +27,9 @@ const dtype = 'u8';
 const nGenes = 6;
 
 const ga = new GA(fitness, nGenes, dtype, {
-  nMutations: 1,
-  logLvl: 1,
-  timeOutMS: 30 * SEC,
+  nMutations: NMutations.SMALL,
+  logLvl: LogLvl.NORMAL,
+  timeOutMS: Duration.seconds(30),
 });
 
 console.log('TASK: find x1, x2, x3, x4, x5, x6 such that log2(x1) * x2^x3 / x4 + x5^log2(x6) = 0');

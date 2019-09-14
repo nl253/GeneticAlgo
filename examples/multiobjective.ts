@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-import { GeneticAlgorithm as  GA } from '../index';
-
-const SEC = 1000;
+import {
+  GeneticAlgorithm as  GA,
+  LogLvl,
+  Duration,
+} from '..';
 
 const fitness = [
 // @ts-ignore
@@ -16,11 +18,8 @@ const dtype = 'u8';  // search space of real numbers (floats) is more challengin
 const nGenes = 300;  // the more genes, the more difficult the task
 
 const opts = {
-  timeOutMS: 30 * SEC,
-  // to make it very verbose...
-  // log: 2,
-  // to make it verbose...
-  logLvl: 1,
+  timeOutMS: Duration.seconds(30),
+  logLvl: LogLvl.NORMAL,
 };
 
 const ga = new GA(fitness, nGenes, dtype, opts);
