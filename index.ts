@@ -292,13 +292,13 @@ export class GeneticAlgorithm extends EventEmitter {
   protected readonly nGenes: number;
   protected readonly fitness: FitnessFunct[];
 
-  public readonly timeOutMS   = Duration.seconds(30);
-  public readonly nRounds     = NRounds.LARGE;
+  protected readonly timeOutMS   = Duration.seconds(30);
+  protected readonly nRounds     = NRounds.LARGE;
   private readonly nTrack     = NTrack.TINY;
   private readonly minImprove = MinImprove.SENSITIVE;
 
-  public readonly popSize = PopSize.MEDIUM;
-  public readonly weights: Float64Array | Float32Array | number[];
+  protected readonly popSize = PopSize.MEDIUM;
+  protected readonly weights: Float64Array | Float32Array | number[];
 
   // dynamic getter generation
   public readonly pMutate!: number;
