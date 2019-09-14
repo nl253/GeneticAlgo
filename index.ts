@@ -213,13 +213,14 @@ export type UserOpts = Partial<{
   // TODO validateFitness: boolean,
   logLvl: 0 | 1 | 2,
   randGeneVal: () => number | [number, number];
-  log: (...msg: string[]) => void;
+  log: (...msg: any[]) => void;
 }>;
 type NumOptResolved = {
                         start: number,
                         end: number,
                         whenFit: Behaviour,
                       };
+
 
 function getNumOpt(percentageOf: number | undefined, o: NumOpt): NumOptResolved {
   if (o.constructor.name === 'Number') {
@@ -248,44 +249,20 @@ function getNumOpt(percentageOf: number | undefined, o: NumOpt): NumOptResolved 
   return opt;
 }
 
-function optToGetter(self: any,
-                     name: string,
-                     { start, end, whenFit }: NumOptResolved,
-                     afterFunct?: (n: number) => number) {
-  if (start === end) {
-    self[name] = start;
-    return;
+function fmtTable(heading: string, obj: object = {}, doUnderline: boolean = false, doNL: boolean = true, log: (...msg: any[]) => void = console.log): void {
+  const lWidth = Object.keys(obj)
+    .map((k: string) => k.length)
+    .reduce((x1: number, x2: number) => Math.max(x1, x2));
+  log(heading.toUpperCase());
+  if (doUnderline) {
+    log('-'.repeat(heading.length));
   }
-  const range = end - start;
-  let f: () => number;
-  if (whenFit === 'constant') {
+  for (const k of Object.keys(obj)) {
     // @ts-ignore
-    f = function() { return start + this.percentageDone * range; };
-  } else {
-    if (start <= end) {
-      if (whenFit === 'decreases') {
-        // @ts-ignore
-        f = function() { return start + this.percentageDone * range * (this.rank / this.popSize); };
-      } else {
-        // @ts-ignore
-        f = function() { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
-      }
-    } else {
-      if (whenFit === 'increases') {
-        // @ts-ignore
-        f = function() { return start + this.percentageDone * range * (this.rank / this.popSize); };
-      } else {
-        // @ts-ignore
-        f = function() { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
-      }
-    }
+    this.log(k.padEnd(lWidth, ' '), ' ', obj[k].toString());
   }
-  if (afterFunct === undefined) {
-    Object.defineProperty(self, name, { get: f });
-  } else {
-    // @ts-ignore
-    const f2 = (function () { return afterFunct(f.bind(this)()); });
-    Object.defineProperty(self, name, { get: f2 });
+  if (doNL) {
+    log('');
   }
 }
 
@@ -304,7 +281,6 @@ const arrays = {
 export class GeneticAlgorithm extends EventEmitter {
   public readonly nGenes: number;
   public fitness: FitnessFunct[];
-  public dtype: Dtype;
 
   public timeOutMS = Duration.seconds(30);
   public nRounds = NRounds.LARGE;
@@ -330,7 +306,7 @@ export class GeneticAlgorithm extends EventEmitter {
 
   protected readonly randGeneVal: () => number;
 
-  protected readonly log: (...msg: string[]) => void;
+  protected readonly log: (...msg: any[]) => void;
   private readonly logLvl = LogLvl.SILENT;
 
   public startTm = -Infinity;
@@ -343,8 +319,6 @@ export class GeneticAlgorithm extends EventEmitter {
   public constructor(fitness: FitnessFunct | FitnessFunct[], nGenes: number, dtype: Dtype = 'f64', opts: UserOpts = {}) {
     super();
     this.nGenes = nGenes;
-    this.dtype  = dtype;
-
     // multi-objective optimisation
     // allow for many fitness functions
     this.fitness = Array.isArray(fitness) ? fitness : [fitness];
@@ -353,20 +327,15 @@ export class GeneticAlgorithm extends EventEmitter {
 
     this.log = opts.log === undefined ? console.log : opts.log;
 
-    Object.assign(this, {
-      // how important each objective is
-      nElite:     NElite.ADAPTIVE,
-      pMutate:    PMutate.ADAPTIVE,
-      nMutations: NMutations.ADAPTIVE,
-      ...opts,
-    });
+    Object.assign(this, opts);
 
     // register getters from user config merged with defaults into `this`
-    optToGetter(this, 'nElite', getNumOpt(this.popSize, this.nElite), Math.round);
-    optToGetter(this, 'nMutations', getNumOpt(nGenes, this.nMutations), Math.ceil);
-    optToGetter(this, 'pMutate', getNumOpt(undefined, this.pMutate));
+    this.optToGetter('nElite', getNumOpt(this.popSize, opts.nElite !== undefined && opts.nElite !== null ? opts.nElite : NElite.ADAPTIVE), Math.round);
+    this.optToGetter( 'nMutations', getNumOpt(nGenes, opts.nMutations !== undefined && opts.nMutations !== null ? opts.nMutations : NMutations.ADAPTIVE), Math.ceil);
+    this.optToGetter('pMutate', getNumOpt(undefined, opts.pMutate !== undefined && opts.pMutate !== null ? opts.pMutate : PMutate.ADAPTIVE));
 
     // if rand gene value supplier was not given make one using rand uniform distribution with bounds based on `dtype`
+    // you can also specify bounds using [bound lower, bound upper] syntax, this will also use uniform distribution
     if (opts.randGeneVal === undefined) {
       const nBits: 8 | 16 | 32 | 64 = dtype.endsWith('8') ? 8 : dtype.endsWith('16') ? 16 : dtype.endsWith('32') ? 32 : 64;
 
@@ -402,7 +371,7 @@ export class GeneticAlgorithm extends EventEmitter {
       this.randGeneVal = opts.randGeneVal as () => number;
     }
 
-    this.pop = this.createPop();
+    this.pop = GeneticAlgorithm.createPop(dtype, this.popSize, nGenes, this.randGeneVal);
 
     // indexes of candidates
     // re-sorted on each round as opposed to re-sorting `pop`
@@ -440,23 +409,6 @@ export class GeneticAlgorithm extends EventEmitter {
       }
     }
 
-    const fmtTable = (heading: string, obj: object = {}, doUnderline: boolean = false, doNL: boolean = true) => {
-      const lWidth = Object.keys(obj)
-                           .map((k: string) => k.length)
-                           .reduce((x1: number, x2: number) => Math.max(x1, x2));
-      this.log(heading.toUpperCase());
-      if (doUnderline) {
-        this.log('-'.repeat(heading.length));
-      }
-      for (const k of Object.keys(obj)) {
-        // @ts-ignore
-        this.log(k.padEnd(lWidth, ' '), ' ', obj[k].toString());
-      }
-      if (doNL) {
-        this.log('');
-      }
-    };
-
     if (this.logLvl >= LogLvl.NORMAL) {
       this.on('score', () => {
         fmtTable(
@@ -476,6 +428,46 @@ export class GeneticAlgorithm extends EventEmitter {
         const heading = `${this.rank}${this.rank === 1 ? 'st' : this.rank === 2 ? 'nd' : this.rank === 3 ? 'rd' : 'th'} best cand`;
         fmtTable(heading, obj, false, true);
       });
+    }
+  }
+
+
+  optToGetter(name: string, { start, end, whenFit }: NumOptResolved, afterFunct?: (n: number) => number) {
+    if (start === end) {
+      // @ts-ignore
+      this[name] = start;
+      return;
+    }
+    const range = end - start;
+    let f: () => number;
+    if (whenFit === 'constant') {
+      // @ts-ignore
+      f = function() { return start + this.percentageDone * range; };
+    } else {
+      if (start <= end) {
+        if (whenFit === 'decreases') {
+          // @ts-ignore
+          f = function() { return start + this.percentageDone * range * (this.rank / this.popSize); };
+        } else {
+          // @ts-ignore
+          f = function() { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
+        }
+      } else {
+        if (whenFit === 'increases') {
+          // @ts-ignore
+          f = function() { return start + this.percentageDone * range * (this.rank / this.popSize); };
+        } else {
+          // @ts-ignore
+          f = function() { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
+        }
+      }
+    }
+    if (afterFunct === undefined) {
+      Object.defineProperty(this, name, { get: f });
+    } else {
+      // @ts-ignore
+      const f2 = (function () { return afterFunct(f.bind(this)()); });
+      Object.defineProperty(this, name, { get: f2 });
     }
   }
 
@@ -503,12 +495,12 @@ export class GeneticAlgorithm extends EventEmitter {
 
   public get percentageDone(): number { return Math.max(this.percentageDoneRounds, this.percentageDoneTime); }
 
-  protected createPop(): TypedArray {
-    const pop = arrays[this.dtype](this.popSize * this.nGenes);
-    for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
-      const offset = cIdx * this.nGenes;
-      for (let gIdx = 0; gIdx < this.nGenes; gIdx++) {
-        pop[offset + gIdx] = this.randGeneVal();
+  static createPop(dtype: Dtype, popSize: number, nGenes: number, randGeneValFunc: () => number): TypedArray {
+    const pop = arrays[dtype](popSize * nGenes);
+    for (let cIdx = 0; cIdx < popSize; cIdx++) {
+      const offset = cIdx * nGenes;
+      for (let gIdx = 0; gIdx < nGenes; gIdx++) {
+        pop[offset + gIdx] = randGeneValFunc();
       }
     }
     return pop;
