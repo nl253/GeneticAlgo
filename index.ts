@@ -13,25 +13,112 @@
  * here is a minimal polyfill for the core `.on` and `.emit` methods in
  * the events.EventEmitter class.
  */
+type EventHandler = (...args: any[]) => any;
+
+export type RandGeneValFunc = (gene: number, gIdx: number) => number;
+
 export class EventEmitter {
-  private readonly events: Map<string, Array<(...args: any[]) => any>> = new Map();
+  private readonly events: Map<string, EventHandler[]> = new Map();
 
-  private _ensureExists(e: string): void {
-    if (this.events.get(e) === undefined) {
-      this.events.set(e, []);
-    }
+  public emit(e: string, ...args: any[]): boolean {
+    const ouput = this.events.get(e) !== undefined;
+    const fs = this.listeners(e);
+    Promise.all(fs.map(f => new Promise((resolve, reject) => resolve(f(...args)))));
+    return ouput;
   }
 
-  public emit(e: string, ...args: any[]): void {
-    this._ensureExists(e);
-    for (const f of (<Array<(...args: any[]) => any>>this.events.get(e))) {
-      f(...args);
-    }
+  public on(e: string, f: EventHandler): this {
+    this.listeners(e).push(f);
+    this.emit('newListener');
+    return this;
   }
 
-  public on(e: string, f: (...args: any[]) => any): void {
-    this._ensureExists(e);
-    (<Array<(...args: any[]) => any>>this.events.get(e)).push(f);
+  public addListener(e: string, f: EventHandler): this {
+    return this.on(e, f);
+  }
+
+  public eventNames(): string[] {
+    return [...this.events.keys()];
+  }
+
+  public listenerCount(e: string): number {
+    return this.listeners(e).length;
+  }
+
+  public off(e: string, f: EventHandler): this {
+    const fs = this.listeners(e);
+    const idx = fs.findIndex(l => l === f);
+    this.listeners(e).splice(idx, 1);
+    return this;
+  }
+
+  public removeListener(e: string, f: EventHandler): this {
+    return this.off(e, f);
+  }
+
+  public listeners(e: string): EventHandler[] {
+    let output = this.events.get(e);
+    if (output === undefined) {
+      output = [];
+      this.events.set(e, output);
+    }
+    return output;
+  }
+
+  public prependListener(e: string, f: EventHandler): this {
+    this.listeners(e).unshift(f);
+    return this;
+  }
+
+  public removeAllListeners(e: string): this {
+    this.events.set(e, []);
+    return this;
+  }
+}
+
+export class Duration {
+  private static SEC = 1000;
+  public static seconds(n: number): number {
+    return Duration.SEC * n;
+  }
+  public static secondsFromMS(n: number): number {
+    return n / Duration.seconds(1);
+  }
+  public static minutes(n: number): number {
+    return Duration.seconds(60) * n;
+  }
+  public static minutesFromMS(n: number): number {
+    return n / Duration.minutes(1);
+  }
+  public static hours(n: number): number {
+    return Duration.minutes(60) * n;
+  }
+  public static hoursFromMS(n: number): number {
+    return n / Duration.hours(1);
+  }
+  public static days(n: number): number {
+    return Duration.hours(24) * n;
+  }
+  public static daysFromMS(n: number): number {
+    return n / Duration.days(1);
+  }
+  public static weeks(n: number): number {
+    return Duration.days(7) * n;
+  }
+  public static weeksFromMS(n: number): number {
+    return n / Duration.weeks(1);
+  }
+  public static months(n: number): number {
+    return Duration.days(30) * n;
+  }
+  public static monthsFromMS(n: number): number {
+    return n / Duration.months(1);
+  }
+  public static years(n: number): number {
+    return Duration.days(365) * n;
+  }
+  public static yearsFromMS(n: number): number {
+    return n / Duration.years(1);
   }
 }
 
@@ -64,21 +151,7 @@ export type TypedArray = Uint8Array
                        | Float32Array
                        | Float64Array;
 export type FitnessFunct = (candidate: TypedArray) => number;
-export type UserOpts = {
-  logLvl?: number,
-  minImprove?: number,
-  nElite?: NumOpt,
-  nMutations?: NumOpt,
-  nRounds?: number,
-  nTrack?: number,
-  pMutate?: NumOpt,
-  popSize?: number,
-  boundUpper?: number,
-  boundLower?: number,
-  timeOutMS?: number,
-  weights?: Array<number> | TypedArray,
-};
-type ResolvedOpts = {
+export type UserOpts = Partial<{
   logLvl: number,
   minImprove: number,
   nElite: NumOpt,
@@ -90,8 +163,9 @@ type ResolvedOpts = {
   boundUpper: number,
   boundLower: number,
   timeOutMS: number,
-  weights: Array<number> | TypedArray,
-};
+  weights: Float64Array | Float32Array | number[],
+  validateFitness: boolean,
+}>;
 type NumOptResolved = {
                         start: number,
                         end: number,
@@ -100,27 +174,27 @@ type NumOptResolved = {
 
 function getNumOpt(percentageOf: number | undefined, o: NumOpt): { start: number, end: number, whenFit: Behaviour } {
   if (o.constructor.name === 'Number') {
-    return getNumOpt(percentageOf, <[number, number]>[o, o]);
+    return getNumOpt(percentageOf, [o, o] as [number, number]);
   } else if (o.constructor.name === 'Array') {
-    const [start, end]: [number, number] = <[number, number]>o;
+    const [start, end]: [number, number] = o as [number, number];
     return getNumOpt(percentageOf, { start, end });
-  } else if ((<NumOptResolved>o).whenFit === undefined) {
-    (<NumOptResolved>o).whenFit = 'constant';
+  } else if ((o as NumOptResolved).whenFit === undefined) {
+    (o as NumOptResolved).whenFit = 'constant';
     return getNumOpt(percentageOf, o);
-  } else if (percentageOf !== undefined && (<NumOptResolved>o).start < 1.0) {
-    (<NumOptResolved>o).start *= percentageOf;
+  } else if (percentageOf !== undefined && (o as NumOptResolved).start < 1.0) {
+    (o as NumOptResolved).start *= percentageOf;
     return getNumOpt(percentageOf, o);
-  } else if (percentageOf !== undefined && (<NumOptResolved>o).end < 1.0) {
-    (<NumOptResolved>o).end *= percentageOf;
+  } else if (percentageOf !== undefined && (o as NumOptResolved).end < 1.0) {
+    (o as NumOptResolved).end *= percentageOf;
     return getNumOpt(percentageOf, o);
   } else {
-    return <NumOptResolved>o;
+    return o as NumOptResolved;
   }
 }
 
 function optToGetter(self: any,
                      name: string,
-                     { start, end, whenFit }: { start: number, end: number, whenFit: Behaviour },
+                     { start, end, whenFit }: NumOptResolved,
                      afterFunct?: (n: number) => number) {
   if (start === end) {
     self[name] = start;
@@ -172,51 +246,41 @@ const arrays = {
 };
 
 export class GeneticAlgorithm extends EventEmitter {
-  protected readonly DEFAULT_OPTS = {
-    minImprove:      1E-6,
-    nRounds:         1E6,
-    nTrack:          100,
-    popSize:         300,
-    nElite:          { start:  0.05, end: 0.150 },
-    pMutate:         { start:  0.10, end: 0.010, whenFit: 'increases' },
-    nMutations:      { start: 10.00, end: 1.000, whenFit: 'decreases' },
-    logLvl:          0,
-    timeOutMS:       30 * 1000, // 30 SEC
-    validateFitness: false, // check if NaN returned
-    weights:         (<TypedArray | undefined>undefined), // set later
-  };
+  public nGenes: number;
+  public fitness: FitnessFunct[];
+  public dtype: Dtype;
 
-  public readonly nGenes: number;
-  public readonly fitness: Array<FitnessFunct>;
-  public readonly dtype: Dtype;
+  public timeOutMS: number;
+  public nRounds: number;
+  public nTrack: number;
+  public minImprove: number;
 
-  public readonly timeOutMS: number;
-  public readonly nRounds: number;
-  public readonly nTrack: number;
-  public readonly minImprove: number;
+  public boundLower: number;
+  public boundUpper: number;
+  public randRange: number;
 
-  public readonly popSize: number;
+  public popSize: number;
   // value within search space bounds (guess from dtype)
-  public readonly randGeneVal!: (gene: number, gIdx: number) => number;
-  public readonly weights: Array<number> | TypedArray;
+  public randGeneVal!: RandGeneValFunc;
+  public weights: Float64Array | Float32Array | number[];
 
   // dynamic getter generation
-  public readonly pMutate!: number;
-  public readonly nElite!: number;
-  public readonly nMutations!: number;
+  public pMutate!: number;
+  public nElite!: number;
+  public nMutations!: number;
 
-  protected readonly pop: TypedArray;
-  protected readonly idxs: Uint32Array;
-  protected readonly scores: Array<Float64Array>;
-  protected readonly bestScores: Array<Float64Array>;
+  protected pop: TypedArray;
+  protected idxs: Uint32Array;
+  protected scores: Float64Array[];
+  protected bestScores: Float64Array[];
 
   public startTm: number;
   public rIdx: number;
   public rank: number;
   public cIdx: number;
-  public op: Op = 'mutate';
+  public op: Op;
 
-  public constructor(fitness: FitnessFunct | Array<FitnessFunct>, nGenes: number, dtype: Dtype, opts: UserOpts = {}) {
+  public constructor(fitness: FitnessFunct | FitnessFunct[], nGenes: number, dtype: Dtype = 'f64', opts: UserOpts = {}) {
     super();
     this.nGenes = nGenes;
     this.dtype  = dtype;
@@ -225,86 +289,78 @@ export class GeneticAlgorithm extends EventEmitter {
     // allow for many fitness functions
     this.fitness = Array.isArray(fitness) ? fitness : [fitness];
 
-    // how important each objective is
-    if (opts.weights === undefined) {
-      this.DEFAULT_OPTS.weights = arrays.f64(this.fitness.length).fill(1);
-    }
-
-    // @ts-ignore
-    const resolvedOpts: ResolvedOpts = Object.assign(Object.assign({}, this.DEFAULT_OPTS), opts);
+    Object.assign(this, {
+      // how important each objective is
+      weights: arrays.f64(this.fitness.length).fill(1),
+      minImprove:      1E-6,
+      nRounds:         1E6,
+      nTrack:          100,
+      popSize:         300,
+      nElite:          { start:  0.05, end: 0.150 },
+      pMutate:         { start:  0.10, end: 0.010, whenFit: 'increases' as Behaviour },
+      nMutations:      { start: 10.00, end: 1.000, whenFit: 'decreases' as Behaviour },
+      logLvl:          0,
+      timeOutMS:       Duration.seconds(30),
+      // check if NaN returned
+      validateFitness: false,
+      ...opts,
+      op:     'mutate',
+      rIdx:    0,
+      startTm: -Infinity,
+      rank:    0,
+      cIdx:    0,
+    });
 
     // register getters from user config merged with defaults into `this`
-    optToGetter(this, 'nElite', getNumOpt(resolvedOpts.popSize, resolvedOpts.nElite), Math.round);
-    optToGetter(this, 'nMutations', getNumOpt(nGenes, resolvedOpts.nMutations), Math.ceil);
-    optToGetter(this, 'pMutate', getNumOpt(undefined, resolvedOpts.pMutate));
-
-    this.weights     = resolvedOpts.weights;
-    this.nTrack      = resolvedOpts.nTrack;
-    this.nRounds     = resolvedOpts.nRounds;
-    this.popSize     = resolvedOpts.popSize;
-    this.minImprove  = resolvedOpts.minImprove;
-    this.timeOutMS   = resolvedOpts.timeOutMS;
-    this.rIdx        = 0;
-    this.startTm     = -Infinity;
-    this.rank        = 0;
-    this.cIdx        = 0;
+    optToGetter(this, 'nElite', getNumOpt(this.popSize, this.nElite), Math.round);
+    optToGetter(this, 'nMutations', getNumOpt(nGenes, this.nMutations), Math.ceil);
+    optToGetter(this, 'pMutate', getNumOpt(undefined, this.pMutate));
 
     // if rand gene value supplier was not given make one using rand uniform distribution with bounds based on `dtype`
     if (this.randGeneVal === undefined) {
       const nBits: 8 | 16 | 32 | 64 = dtype.endsWith('8') ? 8 : dtype.endsWith('16') ? 16 : dtype.endsWith('32') ? 32 : 64;
-      let randValMin: number;
-      let randValMax: number;
 
       // intelligently compute min and max bounds of search space based on `dtype`
-      if (resolvedOpts.boundUpper === undefined) {
+      if (this.boundUpper === undefined) {
         if (dtype.startsWith('f')) {
-          randValMax = (3.4 * (10 ** 38) - 1) / 1E4;
+          this.boundUpper = (3.4 * (10 ** 38) - 1) / 1E4;
         } else if (dtype.startsWith('i')) {
-          randValMax = 2 ** (nBits - 1) - 1;
+          this.boundUpper = 2 ** (nBits - 1) - 1;
         } else /* if (dtype.startsWith('u')) */ {
-          randValMax = 2 ** nBits - 1;
+          this.boundUpper = 2 ** nBits - 1;
         }
-      } else {
-        randValMax = resolvedOpts.boundUpper;
       }
 
-      if (resolvedOpts.boundLower === undefined) {
+      if (this.boundLower === undefined) {
         if (dtype.startsWith('f')) {
-          randValMin = (1.2 * (10 ** -38)) / 1E4;
+          this.boundLower = (1.2 * (10 ** -38)) / 1E4;
         } else if (dtype.startsWith('i')) {
-          randValMin = -(2 ** (nBits - 1)) + 1;
+          this.boundLower = -(2 ** (nBits - 1)) + 1;
         } else /* if (dtype.startsWith('u')) */ {
-          randValMin = 0;
+          this.boundLower = 0;
         }
-      } else {
-        randValMin = resolvedOpts.boundLower;
       }
 
-      const randRange  = randValMax - randValMin;
-      this.randGeneVal = (gene: number, gIdx: number) => randValMin + randRange * Math.random();
+      this.randRange  = this.boundUpper - this.boundLower;
     }
 
     this.pop = this.createPop();
 
     // indexes of candidates
     // re-sorted on each round as opposed to re-sorting `pop`
-    this.idxs = arrays.u32(resolvedOpts.popSize)
+    this.idxs = arrays.u32(this.popSize)
                       .map((_, idx) => idx);
 
     // fitness score for every objective for every candidate
-    this.scores = Array(this.fitness.length)
-        .fill(0)
-        .map((_, fIdx) => {
-          return arrays.f64(resolvedOpts.popSize)
-                       .map((_, cIdx) => {
-                         return this.fitness[fIdx](this.pop.subarray(cIdx * nGenes, cIdx * nGenes + nGenes))
-                       })
-        });
+    this.scores = Array(this.fitness.length).fill(0)
+                                            .map((_, fIdx) => {
+                                              return arrays.f64(this.popSize)
+                                                           .map((_, cIdx) => this.fitness[fIdx](this.pop.subarray(cIdx * nGenes, cIdx * nGenes + nGenes)))
+                                            });
 
-    // @ts-ignore
-    const maxScore: TypedArray = arrays.f64(this.fitness.length).map((_, idx) => {
-      return this.scores[idx].reduce((x1: number, x2: number) => Math.max(x1, x2));
-    });
+    const maxScore: TypedArray = arrays.f64(this.fitness.length)
+                                       .map((_, idx) =>
+                                         this.scores[idx].reduce( (x1: number, x2: number) => Math.max(x1, x2)));
 
     // scores of fittest candidates for every objective
     this.bestScores =
@@ -317,14 +373,13 @@ export class GeneticAlgorithm extends EventEmitter {
 
     this.idxs.sort(this.compare.bind(this)); // it's the idxs that are sorted based on scores
 
-    if (resolvedOpts.logLvl >= 1) {
+    if (this.logLvl >= 1) {
       this.on('start', () => console.log('started genetic algorithm at', new Date(), 'with opts', this));
       this.on('end', () => console.log('finished running genetic algorithm at', new Date(), `took ${this.timeTakenMS / 1000}sec, did ${this.rIdx} rounds`));
       for (const reason of ['stuck', 'rounds', 'timeout']) {
         this.on(reason, () => console.log(`[${reason}]`));
       }
     }
-
 
     const fmtTable = (heading: string, obj: object = {}, doUnderline: boolean = false, doNL: boolean = true) => {
       const lWidth = Object.keys(obj)
@@ -343,7 +398,7 @@ export class GeneticAlgorithm extends EventEmitter {
       }
     };
 
-    if (resolvedOpts.logLvl >= 1) {
+    if (this.logLvl >= 1) {
       this.on('score', () => {
         fmtTable(
             `round #${this.rIdx} (${(this.percentageDone * 100).toFixed(0)}% done)`,
@@ -353,7 +408,7 @@ export class GeneticAlgorithm extends EventEmitter {
       });
     }
 
-    if (resolvedOpts.logLvl >= 2) {
+    if (this.logLvl >= 2) {
       this.on('op', () => {
         const obj: { pMutate: string | number, nMutations: undefined | string | number } = { pMutate : `${(this.pMutate * 100).toFixed(0)}%`, nMutations: '' };
         if (this.op === 'mutate') {
@@ -363,6 +418,10 @@ export class GeneticAlgorithm extends EventEmitter {
         fmtTable(heading, obj, false, true);
       });
     }
+  }
+
+  public randGeneVal(gene: number, gIdx: number): number {
+    return this.boundLower + this.randRange * Math.random();
   }
 
   public get bestCand(): TypedArray { return this.nthBestCand(0); }
