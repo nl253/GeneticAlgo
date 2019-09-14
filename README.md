@@ -368,7 +368,7 @@ For example:
 
 ```js
 const opts = {
-  timeOutMS: 30 * SEC,
+  timeOutMS: Duration.seconds(30),
   nElite: 0.1,
 }
 const nGenes = 1000
@@ -455,7 +455,6 @@ which can be used for profiling.
 **Emitted Once** <br>
 
 1. `"start"` after `.search()` and all initialisation is complete, before the 1st round
-    - **Object** `opts` the algorithm is run with (you can use it to see if you configured it properly)
 
 **Emitted on Stop Condition Met** <br>
 
@@ -463,22 +462,19 @@ which can be used for profiling.
 2. `"stuck"` when stuck in a local minimum.
 3. `"rounds"` when `nRounds` limit reached.
 4. `"end"` when finished.
-    - **Object** `env`
 
 **Emitted Every Round** <br>
 
 1. `"round"` on every round start (**not** the same as `"rounds"`).
-    - **Object** `env`
 2. `"op"` on every selection and mutation / crossover operation application
-    - **Object** `env`
 
 Example of extracting data from signals:
 
 ```js
-ga.on('start', opts => console.log('[START] with opts', opts))
+ga.on('start', () => console.log('[START] with opts', opts))
 ga.on('stuck', () => console.log(`[END] stuck`))
 ga.on('timeout', () => console.log(`[END] timeout`))
-ga.on('end', env => console.log(`[END] after round #${env.rIdx} (took ${env.timeTakenMS / SEC}sec)`))
+ga.on('end', () => console.log(`[END] after round #${ga.rIdx} (took ${ga.timeTakenMS / SEC}sec)`))
 ```
 
 More examples [here](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples).
