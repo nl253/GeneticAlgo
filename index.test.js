@@ -270,4 +270,5 @@ describe('ga does well on simple problems', () => {
 });
 
 test.todo('idxs are sorted properly so that they are shifted to the left (towards 0) when candidates are fitter');
+
 test.todo('dynamic parameters pMutate, nMutations and nElite are adjusted correctly');

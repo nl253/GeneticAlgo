@@ -339,7 +339,7 @@ export class GeneticAlgorithm extends EventEmitter {
     Object.assign(this, opts);
 
     // register getters from user config merged with defaults into `this`
-    this.optToGetter('nElite', getNumOpt(this.popSize, opts.nElite !== undefined && opts.nElite !== null ? opts.nElite : NElite.ADAPTIVE), Math.round);
+    this.optToGetter('nElite', getNumOpt(this.popSize, opts.nElite !== undefined && opts.nElite !== null ? opts.nElite : NElite.ADAPTIVE), Math.ceil);
     this.optToGetter( 'nMutations', getNumOpt(nGenes, opts.nMutations !== undefined && opts.nMutations !== null ? opts.nMutations : NMutations.ADAPTIVE), Math.ceil);
     this.optToGetter('pMutate', getNumOpt(undefined, opts.pMutate !== undefined && opts.pMutate !== null ? opts.pMutate : PMutate.ADAPTIVE));
 
@@ -438,7 +438,7 @@ export class GeneticAlgorithm extends EventEmitter {
     }
   }
 
-  private optToGetter(name: string, { start, end, whenFit }: NumOptResolved, afterFunct?: (n: number) => number) {
+  private optToGetter(name: string, { start, end, whenFit }: NumOptResolved, afterFunct?: (n: number) => number): void {
     if (start === end) {
       // @ts-ignore
       this[name] = start;
@@ -449,35 +449,27 @@ export class GeneticAlgorithm extends EventEmitter {
     if (whenFit === 'constant') {
       // @ts-ignore
       f = function() { return start + this.percentageDone * range; };
-    } else {
-      if (start <= end) {
-        if (whenFit === 'decreases') {
-          // @ts-ignore
-          f = function() { return start + this.percentageDone * range * (this.rank / this.popSize); };
-        } else {
-          // @ts-ignore
-          f = function() { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
-        }
-      } else {
-        if (whenFit === 'increases') {
-          // @ts-ignore
-          f = function() { return start + this.percentageDone * range * (this.rank / this.popSize); };
-        } else {
-          // @ts-ignore
-          f = function() { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
-        }
-      }
-    }
-    if (afterFunct === undefined) {
-      Object.defineProperty(this, name, { get: f });
+    } else if (whenFit === 'decreases') {
+      // @ts-ignore
+      f = function() { return start + this.percentageDone * range * (this.rank / this.popSize); };
     } else {
       // @ts-ignore
-      const f2 = (function () { return afterFunct(f.bind(this)()); });
-      Object.defineProperty(this, name, { get: f2 });
+      f = function() { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
+    }
+    if (afterFunct === undefined) {
+      Object.defineProperty(this, name, {get: f});
+    } else {
+      // @ts-ignore
+      const f2 = (function() {
+        return afterFunct(f.bind(this)());
+      });
+      Object.defineProperty(this, name, {get: f2});
     }
   }
 
-  public get bestCand(): TypedArray { return this.nthBestCand(0); }
+  public get bestCand(): TypedArray {
+    return this.nthBestCand(0);
+  }
 
   public nthBestCand(n: number): TypedArray {
     const offset = this.idxs[n] * this.nGenes;
