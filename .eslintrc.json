@@ -12,8 +12,7 @@
     "eslint:recommended",
     "plugin:node/recommended",
     "plugin:security/recommended",
-    "plugin:promise/recommended",
-    "airbnb"
+    "plugin:promise/recommended"
   ],
   "globals": {
     "Array": true,
@@ -56,21 +55,11 @@
         "getWithoutSet": true
       }
     ],
-    "array-bracket-newline": [
-      1,
-      {
-        "minItems": 2,
-        "multiline": true
-      }
-    ],
+    "arrow-parens": [1, "always"],
+    "array-bracket-spacing": 1,
+    "array-bracket-newline": 0,
     "array-callback-return": 1,
-    "array-element-newline": [
-      1,
-      {
-        "minItems": 2,
-        "multiline": true
-      }
-    ],
+    "array-element-newline": 0,
     "arrow-spacing": [
       1,
       {
@@ -128,16 +117,7 @@
       "^(err|error)$"
     ],
     "init-declarations": 0,
-    "lines-around-comment": [
-      1,
-      {
-        "afterBlockComment": false,
-        "allowArrayEnd": false,
-        "allowArrayStart": false,
-        "allowBlockStart": true,
-        "allowObjectEnd": true
-      }
-    ],
+    "lines-around-comment": 0,
     "lines-between-class-members": 1,
     "max-depth": [
       1,
@@ -363,6 +343,8 @@
     ],
     "one-var-declaration-per-line": 1,
     "operator-assignment": 1,
+    "indent": [1, 2],
+    "newline-per-chained-call": 1,
     "optimize-regex/optimize-regex": 1,
     "padding-line-between-statements": 1,
     "prefer-arrow-callback": 1,
@@ -400,7 +382,7 @@
       }
     ],
     "sort-imports": 1,
-    "sort-keys": 1,
+    "sort-keys": 0,
     "radix": 0,
     "sort-vars": 0,
     "space-unary-ops": [

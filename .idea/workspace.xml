@@ -2,6 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d674af68-e813-448a-ba60-6492f755356c" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.eslintrc.json" beforeDir="false" afterPath="$PROJECT_DIR$/.eslintrc.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/index.test.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
@@ -48,7 +51,9 @@
     <property name="JavaScriptWeakerCompletionTypeGuess" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="javascript.nodejs.core.library.configured.version" value="12.2.0" />
+    <property name="js.last.introduce.type" value="CONST" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/index.test.js" />
+    <property name="node.js.detected.package.standard" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
     <property name="node.js.path.for.package.standard" value="project" />
     <property name="node.js.path.for.package.stylelint" value="project" />
@@ -63,7 +68,7 @@
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="nodejs_package_manager_path" value="npm" />
     <property name="restartRequiresConfirmation" value="false" />
-    <property name="settings.editor.selected.configurable" value="IntelliLang.Configuration" />
+    <property name="settings.editor.selected.configurable" value="preferences.editor" />
     <property name="ts.external.directory.path" value="C:\Users\Kier\Documents\GeneticAlgo\node_modules\typescript\lib" />
     <property name="typescript.add.unambiguous.imports.on.the.fly" value="true" />
   </component>
@@ -84,7 +89,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Jest.TEST">
+  <component name="RunManager" selected="Jest.test dynamic vars">
     <configuration name="TEST" type="JavaScriptTestRunnerJest" temporary="true">
       <node-interpreter value="project" />
       <node-options value="" />
@@ -102,6 +107,19 @@
       <envs />
       <scope-kind value="TEST_FILE" />
       <test-file value="$PROJECT_DIR$/index.test.js" />
+      <method v="2" />
+    </configuration>
+    <configuration name="dynamic params stay within bounds when set to do so" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <node-options value="" />
+      <jest-package value="$PROJECT_DIR$/node_modules/jest" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs />
+      <scope-kind value="SUITE" />
+      <test-file value="$PROJECT_DIR$/index.test.js" />
+      <test-names>
+        <test-name value="dynamic params stay within bounds when set to do so" />
+      </test-names>
       <method v="2" />
     </configuration>
     <configuration name="ga does well on simple problems (1)" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
@@ -130,16 +148,16 @@
       </test-names>
       <method v="2" />
     </configuration>
-    <configuration name="time and % done are advancing" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+    <configuration name="test dynamic vars" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
       <node-interpreter value="project" />
       <node-options value="" />
       <jest-package value="$PROJECT_DIR$/node_modules/jest" />
       <working-dir value="$PROJECT_DIR$" />
       <envs />
-      <scope-kind value="TEST" />
+      <scope-kind value="SUITE" />
       <test-file value="$PROJECT_DIR$/index.test.js" />
       <test-names>
-        <test-name value="time and % done are advancing" />
+        <test-name value="test dynamic vars" />
       </test-names>
       <method v="2" />
     </configuration>
@@ -194,16 +212,6 @@
           <envs />
         </option>
       </method>
-    </configuration>
-    <configuration name="build:examples" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="build:examples" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
     </configuration>
     <configuration name="example:math" type="js.build_tools.npm" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
@@ -287,6 +295,8 @@
     </configuration>
     <list>
       <item itemvalue="Jest.TEST" />
+      <item itemvalue="Jest.ga does well on simple problems" />
+      <item itemvalue="Jest.ga does well on simple problems (1)" />
       <item itemvalue="Node.js.math.js" />
       <item itemvalue="Node.js.multiobjective.js" />
       <item itemvalue="Node.js.parallel.js" />
@@ -295,18 +305,16 @@
       <item itemvalue="npm.example:multiobjective" />
       <item itemvalue="npm.example:parallel" />
       <item itemvalue="npm.example:simple" />
-      <item itemvalue="npm.build:examples" />
-      <item itemvalue="Jest.time and % done are advancing" />
-      <item itemvalue="Jest.ga does well on simple problems" />
-      <item itemvalue="Jest.ga does well on simple problems (1)" />
+      <item itemvalue="Jest.dynamic params stay within bounds when set to do so" />
+      <item itemvalue="Jest.test dynamic vars" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Jest.test dynamic vars" />
         <item itemvalue="Jest.TEST" />
+        <item itemvalue="Jest.dynamic params stay within bounds when set to do so" />
         <item itemvalue="Jest.ga does well on simple problems (1)" />
         <item itemvalue="Jest.ga does well on simple problems" />
-        <item itemvalue="Jest.time and % done are advancing" />
-        <item itemvalue="npm.build:examples" />
       </list>
     </recent_temporary>
   </component>
@@ -324,7 +332,8 @@
       <workItem from="1568403134549" duration="3004000" />
       <workItem from="1568406443626" duration="6119000" />
       <workItem from="1568445034051" duration="13237000" />
-      <workItem from="1568482027781" duration="9556000" />
+      <workItem from="1568482027781" duration="10720000" />
+      <workItem from="1568528447553" duration="8796000" />
     </task>
     <task id="LOCAL-00001" summary="Line seps">
       <created>1568403658495</created>
@@ -445,7 +454,14 @@
       <option name="project" value="LOCAL" />
       <updated>1568490211310</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="Add todos">
+      <created>1568491606960</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1568491606960</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -499,7 +515,8 @@
     <MESSAGE value="JSDOC" />
     <MESSAGE value="Add test that checks if ga does well on simple problems" />
     <MESSAGE value="Extract MIN_PERF, rename" />
-    <option name="LAST_COMMIT_MESSAGE" value="Extract MIN_PERF, rename" />
+    <MESSAGE value="Add todos" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add todos" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
