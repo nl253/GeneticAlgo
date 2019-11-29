@@ -1,0 +1,37 @@
+name: Node.js Package Publish
+
+on:
+  push:
+    paths: 
+      - package.json
+    branches:
+      - master
+
+env:
+  DEBUG: 1
+  NODE_ENV: production
+  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+jobs:
+  publish:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        registry: ['https://registry.npmjs.org/']
+        node: ['12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          ref: ${{ github.ref }}
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+          registry-url: ${{ matrix.registry }}
+      - name: Install NPM Packages
+        run: npm install
+      - name: Publish Package
+        run: npm publish

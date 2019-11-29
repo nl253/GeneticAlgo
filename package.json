@@ -1,44 +1,8 @@
 {
-  "author": "Norbert Logiewa <norbertlogiewa96@gmail.com>",
-  "bugs": {
-    "email": "norbertlogiewa96@gmail.com",
-    "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
-  },
-  "maintainers": [
-    {
-      "email": "norbertlogiewa96@gmail.com",
-      "name": "Norbert Logiewa"
-    }
-  ],
+  "name": "genetic-algo",
+  "version": "2.0.0-alpha.10",
   "description": "Genetic algorithm",
-  "devDependencies": {
-    "@types/node": "^12.0.8",
-    "eslint": "^6.4.0",
-    "eslint-plugin-compat": "^3.3.0",
-    "eslint-plugin-filenames": "^1.3.2",
-    "eslint-plugin-import": "^2.18.2",
-    "eslint-plugin-node": "^10.0.0",
-    "eslint-plugin-optimize-regex": "^1.1.6",
-    "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-security": "^1.4.0",
-    "jest": "^24.9.0",
-    "ts-node": "^8.3.0",
-    "typescript": "^3.6.3"
-  },
-  "directories": {
-    "example": "examples"
-  },
-  "engines": {
-    "node": ">=10"
-  },
-  "files": [
-    "README.md",
-    "examples/math.ts",
-    "examples/parallel.ts",
-    "examples/multiobjective.ts",
-    "examples/simple.ts",
-    "index.js"
-  ],
+  "readme": "https://nl253.github.io/GeneticAlgo-JS/index.html",
   "homepage": "https://github.com/nl253/GeneticAlgo-JS",
   "keywords": [
     "algorithm",
@@ -53,25 +17,81 @@
     "global-search"
   ],
   "license": "MIT",
-  "main": "index.js",
-  "name": "genetic-algo",
   "repository": {
     "type": "git",
     "url": "https://github.com/nl253/GeneticAlgo-JS"
   },
-  "jest": {
-    "maxConcurrency": 4
+  "bugs": {
+    "email": "norbertlogiewa96@gmail.com",
+    "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
   },
+  "author": "Norbert Logiewa <norbertlogiewa96@gmail.com>",
+  "maintainers": [
+    {
+      "email": "norbertlogiewa96@gmail.com",
+      "name": "Norbert Logiewa"
+    }
+  ],
+  "contributors": [
+    {
+      "email": "norbertlogiewa96@gmail.com",
+      "name": "Norber Logiewa",
+      "url": "https://github.com/nl253"
+    }
+  ],
+  "engines": {
+    "node": ">=10.15.0"
+  },
+  "engineStrict": true,
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^12.0.8",
+    "@types/license-checker": "^25.0.0",
+    "eslint": "^6.7.1",
+    "@typescript-eslint/parser": "^2.9.0",
+    "@typescript-eslint/eslint-plugin": "^2.9.0",
+    "eslint-plugin-compat": "^3.3.0",
+    "eslint-plugin-filenames": "^1.3.2",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-optimize-regex": "^1.1.6",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-security": "^1.4.0",
+    "typedoc": "^0.15.3",
+    "jest": "^24.9.0",
+    "license-checker": "^25.0.1",
+    "retire": "^2.0.3",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.6.3"
+  },
+  "main": "index.js",
+  "directories": {
+    "example": "examples",
+    "doc": "docs",
+    "lib": "./"
+  },
+  "files": [
+    "README.md",
+    "examples/math.ts",
+    "examples/parallel.ts",
+    "examples/multiobjective.ts",
+    "examples/simple.ts",
+    "index.js"
+  ],
+  "private": false,
   "scripts": {
     "build": "npx tsc -p .",
     "watch": "npx tsc -p . --watch",
-    "prepublishOnly": "npm run build",
     "build:examples": "npx tsc -p ./tsconfig.example.json",
     "example:simple": "node ./examples/simple.js",
     "example:math": "node ./examples/math.js",
     "example:parallel": "node ./examples/parallel.js",
     "example:multiobjective": "node ./examples/multiobjective.js",
-    "test": "jest"
-  },
-  "version": "2.0.0-alpha.10"
+    "test": "npx jest",
+    "doc": "echo -e 'PUBLISHING DOCS\\n' && rm -rf out docs && npx typedoc -R README.md --out ./docs && git add ./docs && git commit -am 'Update docs' -n && npm version patch && git push",
+    "lint": "npx eslint *.ts",
+    "loc": "tokei -- $(git ls-files | grep -E '\\.js$' | grep -v docs | grep -v bin)",
+    "pretest": "npm run build",
+    "prepublishOnly": "npm run build; npm run doc"
+  }
 }

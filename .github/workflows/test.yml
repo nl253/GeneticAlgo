@@ -1,0 +1,43 @@
+name: Test CI
+
+on: [push, pull_request]
+
+env:
+  DEBUG: 1
+  NODE_ENV: development
+
+jobs:
+  test:
+    name: Test
+    strategy:
+      max-parallel: 4
+      fail-fast: true
+      matrix:
+        node: ['12', '10', '8']
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install Node Modules
+        run: npm install
+      - name: Compile Typescript
+        run: npm run build
+      - name: Check Dependencies Licensing
+        run: npx license-checker --summary
+      - name: Check Security Vulnerabilities
+        run: npx retire --js
+      - name: Lint Code
+        run: npm run lint
+      - name: Check TypeDoc Types
+        shell: bash
+        run: npx typedoc --out ./docs ./
+      - name: Test Code
+        run: npm test
+      - name: Audit NPM Packages
+        if: matrix.node >= 10
+        run: npm audit
