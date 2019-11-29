@@ -33,9 +33,6 @@ jobs:
         run: npx retire --js
       - name: Lint Code
         run: npm run lint
-      - name: Check TypeDoc Types
-        shell: bash
-        run: npx typedoc --out ./docs ./
       - name: Test Code
         run: npm test
       - name: Audit NPM Packages
