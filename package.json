@@ -88,7 +88,7 @@
     "example:parallel": "node ./examples/parallel.js",
     "example:multiobjective": "node ./examples/multiobjective.js",
     "test": "npx jest",
-    "doc": "echo -e 'GENERATING DOCS\\n'; rm -rf ./docs; npx typedoc -R ./README.md --out ./docs",
+    "doc": "echo -e 'GENERATING DOCS\\n'; rm -rf ./docs; npx typedoc --readme ./README.md --out ./docs",
     "doc:publish": "echo -e 'PUBLISHING DOCS\\n'; npm run doc; git add ./docs; git commit -am 'Update docs' -n; npm version patch; git push",
     "doc:open": "npm run doc; $BROWSER ./docs/index.html",
     "lint": "npx eslint *.ts",
