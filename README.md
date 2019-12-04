@@ -16,7 +16,7 @@ that follows a similar API.
 ## Installation
 
 ```sh
-$ npm install genetic-algo
+npm install genetic-algo
 ```
 
 [NPM link](https://www.npmjs.com/package/genetic-algo).
@@ -49,7 +49,7 @@ In a nutshell:
 3. Choose `dtype`, one of: `"f64" | "f32" | "i32" | "i16" | "i8" | "u32" | "u16" | "u8"` (see **DTYPE** section below)
 4. [EXTRA] You might want a `decode` function as well (see **DECODE FUNCTION** section below).
 
-## Fitness Function
+## Fitness Funct
 
 ### Signature
 
@@ -82,7 +82,7 @@ been found), least fit candidates have a negative value.
 
 Output from [this example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/math.ts) which uses this fitness function:
 
-```
+```haskell
 log2( 98) *   0^ 61 / 209 +   0^log2( 76) = 0
 log2( 39) *   0^228 / 209 +   0^log2(160) = 0
 log2(100) *   0^ 89 / 202 +   0^log2(151) = 0
@@ -91,7 +91,7 @@ log2( 31) *   0^166 /   9 +   0^log2(166) = 0
 log2(221) *   0^100 / 132 +   0^log2(130) = 0
 log2(  2) *   0^157 / 211 +   0^log2(150) = 0
 log2(  2) *   0^100 / 132 +   0^log2(130) = 0
-...   ...   ...   ...   ...   ...   ...   ... 
+...   ...   ...   ...   ...   ...   ...   ...
 ```
 
 It's crucial that you reward candidate solutions for **approximating** i.e.
@@ -292,7 +292,7 @@ const opts = {
   logLvl: LogLvl.SILENT,
 
   // stop condition
-  // 
+  //
   // if you find that the algorithm gets stuck too quickly, increase it
   timeOutMS: Duration.seconds(30),
 
@@ -300,16 +300,16 @@ const opts = {
   nRounds: NRounds.LARGE, /* 1000000 */
 
   // how many candidate solutions to keep track of
-  // 
+  //
   // it makes sense for it to be 100 - 1500 ish
-  // 
+  //
   // if you find that the algorithm gets stuck too quickly, increase it
   popSize: PopSize.MEDIUM /* 300 */,
 
-  // number of elite candidates (guaranteed to make it to next gene pool unaltered) 
-  // 
+  // number of elite candidates (guaranteed to make it to next gene pool unaltered)
+  //
   // if you find that the algorithm gets stuck too quickly, decrease it
-  // 
+  //
   // e.g. nElite: NElite.SMALL,
   // e.g. nElite: NElite.MEDIUM,
   // e.g. nElite: NElite.LARGE,
@@ -319,7 +319,7 @@ const opts = {
   // e.g. nElite: { start: 0.01, end: 0.25, whenFit: 'increases' }
   // e.g. nElite: { start:  0.1, end:  0.5, whenFit: 'decreases' }
   nElite: NElite.ADAPTIVE, /* { start:  0.05, end: 0.15 } */
- 
+
   // probability of mutation
   //
   // e.g. pMutate: PMutate.SMALL,
@@ -333,7 +333,7 @@ const opts = {
   pMutate: PMutate.ADAPTIVE, /* { start:  0.1, end: 0.01, whenFit: 'increases' } */
 
   // when mutating, target at least ? genes
-  // 
+  //
   // e.g. nMutations: NMutations.SMALL,
   // e.g. nMutations: NMutations.MEDIUM,
   // e.g. nMutations: NMutations.LARGE,
@@ -346,7 +346,7 @@ const opts = {
 
   // when mutating, the value of a gene is replaced with a random value
   // this specifies the range of the random value
-  // 
+  //
   // when not specified, it's set intelligently based on dtype so not necessary to tweak
   //
   // set it manually if you have an idea of where in the search space the solution might be
@@ -355,12 +355,12 @@ const opts = {
   // e.g. randGeneVal: [-100, 2000] /* lower and upper bounds */
   // e.g. randGeneVal: () => -200 + Math.random() * 1E4 /* custom function */
   randGeneVal: undefined,
- 
-  // when using multi-objective optimisation, you can specify relative weights for every objective 
+
+  // when using multi-objective optimisation, you can specify relative weights for every objective
   // (measured by each of fitness function from the array)
   // see **FITNESS FUNCTION**
   // e.g. weights: [0.2, 0.4, 1] /* needs to have the same length as the fitenss function array */
-  weights: undefined, 
+  weights: undefined,
 }
 ```
 

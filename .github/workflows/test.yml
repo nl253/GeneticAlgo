@@ -38,3 +38,15 @@ jobs:
       - name: Audit NPM Packages
         if: matrix.node >= 10
         run: npm audit
+      - name: Lint Docs
+        shell: bash
+        run: npx write-good --so --weasel --tooWordy --cliches --thereIs *.md
+      - name: Lint Markdown Files (1)
+        shell: bash
+        run: npx markdownlint *.md
+      - name: Lint Markdown Files (2)
+        shell: bash
+        run: npx remark -u lint *.md
+      - name: Validate JSON
+        shell: bash
+        run: f() { for i in *.json; do npx jsonlint "$i" || return 1; done; }; f
