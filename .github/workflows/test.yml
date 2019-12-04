@@ -32,7 +32,8 @@ jobs:
       - name: Check Security Vulnerabilities
         run: npx retire --js
       - name: Lint Code
-        run: npm run lint
+        shell: bash
+        run: npx eslint *.ts
       - name: Test Code
         run: npm test
       - name: Audit NPM Packages
