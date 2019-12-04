@@ -110,6 +110,7 @@
     "func-name-matching": 1,
     "func-names": 0,
     "function-call-argument-newline": 0,
+    "key-spacing": 0,
     "generator-star-spacing": [
       1,
       {

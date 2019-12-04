@@ -1,3 +1,5 @@
+/* eslint-disable max-classes-per-file,max-lines */
+
 /**
  * You MAY override the following methods using inheritance (just extend GeneticAlgorithm):
  * - mutate
@@ -48,21 +50,21 @@ const NTrack = Object.freeze({
 });
 
 export const NElite = Object.freeze({
-  ADAPTIVE: {start:  0.05, end: 0.150},
+  ADAPTIVE: { start:  0.05, end: 0.150 },
   SMALL:  0.001,
   MEDIUM: 0.050,
   LARGE:  0.150,
 });
 
 export const PMutate = Object.freeze({
-  ADAPTIVE: {start:  0.10, end: 0.010, whenFit: 'increases' as Behaviour},
+  ADAPTIVE: { start:  0.10, end: 0.010, whenFit: 'increases' as Behaviour },
   SMALL:  0.001,
   MEDIUM: 0.010,
   LARGE:  0.100,
 });
 
 export const NMutations = Object.freeze({
-  ADAPTIVE: {start: 10.00, end: 1.000, whenFit: 'decreases' as Behaviour},
+  ADAPTIVE: { start: 10.00, end: 1.000, whenFit: 'decreases' as Behaviour },
   TINY:   1,
   SMALL:  3,
   MEDIUM: 5,
@@ -74,7 +76,7 @@ export class EventEmitter {
 
   public emit(e: string, ...args: any[]): boolean {
     const ouput = this.events.get(e) !== undefined;
-    this.listeners(e, false).forEach(f => f(...args));
+    this.listeners(e, false).forEach((f) => f(...args));
     return ouput;
   }
 
@@ -103,7 +105,7 @@ export class EventEmitter {
   // noinspection FunctionNamingConventionJS
   public off(e: string, f: EventListener): this {
     const fs = this.listeners(e, false);
-    const idx = fs.findIndex(l => l === f);
+    const idx = fs.findIndex((l) => l === f);
     fs.splice(idx, 1);
     return this;
   }
@@ -377,7 +379,7 @@ export class GeneticAlgorithm extends EventEmitter {
 
     // register getters from user config merged with defaults into `this`
     this.optToGetter('nElite', getNumOpt(this.popSize, opts.nElite !== undefined && opts.nElite !== null ? opts.nElite : NElite.ADAPTIVE), Math.ceil);
-    this.optToGetter( 'nMutations', getNumOpt(nGenes, opts.nMutations !== undefined && opts.nMutations !== null ? opts.nMutations : NMutations.ADAPTIVE), Math.ceil);
+    this.optToGetter('nMutations', getNumOpt(nGenes, opts.nMutations !== undefined && opts.nMutations !== null ? opts.nMutations : NMutations.ADAPTIVE), Math.ceil);
     this.optToGetter('pMutate', getNumOpt(undefined, opts.pMutate !== undefined && opts.pMutate !== null ? opts.pMutate : PMutate.ADAPTIVE));
 
     /*
@@ -385,6 +387,7 @@ export class GeneticAlgorithm extends EventEmitter {
      * you can also specify bounds using [bound lower, bound upper] syntax, this will also use uniform distribution
      */
     if (opts.randGeneVal === undefined) {
+      // eslint-disable-next-line no-nested-ternary
       const nBits: 8 | 16 | 32 | 64 = dtype.endsWith('8') ? 8 : dtype.endsWith('16') ? 16 : dtype.endsWith('32') ? 32 : 64;
 
       let boundUpper: number;
@@ -428,20 +431,17 @@ export class GeneticAlgorithm extends EventEmitter {
 
     // fitness score for every objective for every candidate
     this.scores = Array(this.fitness.length).fill(0)
-      .map((_, fIdx) => {
-        return arrays.f64(this.popSize)
-          .map((_, cIdx) => this.fitness[fIdx](this.pop.subarray(cIdx * nGenes, cIdx * nGenes + nGenes)))
-      });
+      .map((_, fIdx) => arrays.f64(this.popSize).map((_, cIdx) => this.fitness[fIdx](this.pop.subarray(cIdx * nGenes, cIdx * nGenes + nGenes))));
 
     // max scores for every objective
     const maxScore: Float64Array = arrays.f64(this.fitness.length)
-      .map((_, idx) => this.scores[idx].reduce( (x1: number, x2: number) => Math.max(x1, x2)));
+      .map((_, idx) => this.scores[idx].reduce((x1: number, x2: number) => Math.max(x1, x2)));
 
     // scores of `nTrack` fittest candidates for every objective
-    this.bestScores =
-        Array(this.fitness.length).fill(0)
-          .map((_, fIdx) => arrays.f64(this.nTrack) // pretend progress was made to avoid quitting on 1st round
-            .map((_, idx) => maxScore[fIdx] + idx * this.minImprove * 10000));
+    this.bestScores = Array(this.fitness.length)
+      .fill(0)
+      .map((_, fIdx) => arrays.f64(this.nTrack) // pretend progress was made to avoid quitting on 1st round
+        .map((_, idx) => maxScore[fIdx] + idx * this.minImprove * 10000));
 
 
     this.idxs.sort(this.compare.bind(this)); // it's the idxs that are sorted based on scores
@@ -458,9 +458,10 @@ export class GeneticAlgorithm extends EventEmitter {
       this.on('score', () => {
         fmtTable(
           `round #${this.rIdx} (${(this.percentageDone * 100).toFixed(0)}% done)`,
-          {nElite: this.nElite},
+          { nElite: this.nElite },
           true,
-          false);
+          false,
+        );
       });
     }
 
@@ -470,6 +471,7 @@ export class GeneticAlgorithm extends EventEmitter {
         if (this.op === 'mutate') {
           obj.nMutations = this.nMutations;
         }
+        // eslint-disable-next-line no-nested-ternary
         const heading = `${this.rank}${this.rank === 1 ? 'st' : this.rank === 2 ? 'nd' : this.rank === 3 ? 'rd' : 'th'} best cand`;
         fmtTable(heading, obj, false, true);
       });
@@ -486,19 +488,19 @@ export class GeneticAlgorithm extends EventEmitter {
     let f: () => number;
     if (whenFit === 'constant') {
       // @ts-ignore
-      f = function() { return start + this.percentageDone * range; };
+      f = function (): number { return start + this.percentageDone * range; };
     } else if (whenFit === 'decreases') {
       // @ts-ignore
-      f = function() { return start + this.percentageDone * range * (this.rank / this.popSize); };
+      f = function (): number { return start + this.percentageDone * range * (this.rank / this.popSize); };
     } else {
       // @ts-ignore
-      f = function() { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
+      f = function (): number { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
     }
     if (afterFunct === undefined) {
       Object.defineProperty(this, name, {get: f});
     } else {
       // @ts-ignore
-      const f2 = function() {
+      const f2 = function (): number {
         // @ts-ignore
         return afterFunct(f.bind(this)());
       };
@@ -593,6 +595,7 @@ export class GeneticAlgorithm extends EventEmitter {
         score2 += this.weights[fIdx];
       }
     }
+    // eslint-disable-next-line no-nested-ternary
     return score1 > score2 ? -1 : score1 < score2 ? 1 : 0;
   }
 
@@ -612,8 +615,7 @@ export class GeneticAlgorithm extends EventEmitter {
       // get score for every objective by getting the value from the best candidate
       const currRoundScoreIdx = this.rIdx % this.nTrack;
       for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
-        this.bestScores[fIdx][currRoundScoreIdx] =
-            this.scores[fIdx].reduce((s1: number, s2: number) => Math.max(s1, s2));
+        this.bestScores[fIdx][currRoundScoreIdx] = this.scores[fIdx].reduce((s1: number, s2: number) => Math.max(s1, s2));
       }
 
       this.oldPop = this.pop.map((val: number) => val);
@@ -639,8 +641,7 @@ export class GeneticAlgorithm extends EventEmitter {
 
       for (let fIdx = 0; fIdx < this.fitness.length; fIdx++) {
         for (let cIdx = 0; cIdx < this.popSize; cIdx++) {
-          this.scores[fIdx][cIdx] = this.fitness[fIdx](
-            this.pop.subarray(cIdx * this.nGenes, cIdx * this.nGenes + this.nGenes));
+          this.scores[fIdx][cIdx] = this.fitness[fIdx](this.pop.subarray(cIdx * this.nGenes, cIdx * this.nGenes + this.nGenes));
         }
       }
 
