@@ -23,31 +23,28 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
+      - name: Validate JSON
+        shell: bash
+        run: f() { for i in *.json; do npx jsonlint "$i" || return 1; done; }; f
       - name: Install Node Modules
         run: npm install
       - name: Compile Typescript
         run: npm run build
-      - name: Check Dependencies Licensing
-        run: npx license-checker --summary
-      - name: Check Security Vulnerabilities
-        run: npx retire --js
       - name: Lint Code
         shell: bash
-        run: npx eslint *.ts
+        run: npm run lint:code
+      - name: Lint Docs
+        shell: bash
+        run: npm run lint:doc
+      - name: Check JSDoc Types
+        shell: bash
+        run: npm run doc
       - name: Test Code
+        shell: bash
         run: npm test
       - name: Audit NPM Packages
         if: matrix.node >= 10
         run: npm audit
-      - name: Lint Docs
+      - name: Lint Dependencies
         shell: bash
-        run: npx write-good --so --weasel --tooWordy --cliches --thereIs *.md
-      - name: Lint Markdown Files (1)
-        shell: bash
-        run: npx markdownlint *.md
-      - name: Lint Markdown Files (2)
-        shell: bash
-        run: npx remark -u lint *.md
-      - name: Validate JSON
-        shell: bash
-        run: f() { for i in *.json; do npx jsonlint "$i" || return 1; done; }; f
+        run: npm run lint:deps
