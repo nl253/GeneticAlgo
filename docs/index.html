@@ -1,0 +1,609 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>genetic-algo</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.js" data-base=".">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<a href="index.html" class="title">genetic-algo</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-externals" checked />
+							<label class="tsd-widget" for="tsd-filter-externals">Externals</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="globals.html">Globals</a>
+				</li>
+			</ul>
+			<h1> genetic-algo</h1>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-8 col-content">
+			<div class="tsd-panel tsd-typography">
+				<a href="#genetic-algorithm" id="genetic-algorithm" style="color: inherit; text-decoration: none;">
+					<h1>Genetic Algorithm</h1>
+				</a>
+				<ul>
+					<li>use when search space is too large to use brute-force search<ul>
+							<li>e.g. solving equations, automating the process of design and solving <strong>combinatorial problems</strong> (timetable scheduling)</li>
+							<li>many <strong>problems can be reformulated as exploring an n-dimensional search space</strong></li>
+						</ul>
+					</li>
+					<li><strong>adaptive</strong> parameters that change linearly as time approaches end and in response to quality of candidate solution</li>
+					<li><strong>elitism</strong> (preserves top candidates)</li>
+					<li>allows for profiling and debugging (see <strong>EventEmitter API</strong>)</li>
+					<li><strong>efficient</strong> (built on typed arrays)<!--- detects when the algorithm is stuck in a local minimum and returns-->
+					</li>
+				</ul>
+				<p>For an <strong>alternative heuristic</strong> search that may work better when your
+					problem uses continuous (real) values see my <a href="https://www.npmjs.com/package/particle-swarm-optimization">particle swarm optimization algorithm</a>
+				that follows a similar API.</p>
+				<a href="#installation" id="installation" style="color: inherit; text-decoration: none;">
+					<h2>Installation</h2>
+				</a>
+				<pre><code class="language-sh">npm install genetic-algo</code></pre>
+				<p><a href="https://www.npmjs.com/package/genetic-algo">NPM link</a>.</p>
+				<a href="#api" id="api" style="color: inherit; text-decoration: none;">
+					<h2>API</h2>
+				</a>
+				<p>Example:</p>
+				<pre><code class="language-js"><span class="hljs-keyword">const</span> { <span class="hljs-attr">GeneticAlgorithm</span>: GA } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'genetic-algo'</span>)
+
+<span class="hljs-comment">// silly fitness function, maximises values of all genes (see below for a better example)</span>
+<span class="hljs-keyword">const</span> fitnessFunction = <span class="hljs-function"><span class="hljs-params">arr</span> =&gt;</span> arr.reduce(<span class="hljs-function">(<span class="hljs-params">x, y</span>) =&gt;</span> x + y, <span class="hljs-number">0</span>)
+
+<span class="hljs-comment">// you may also supply an object with options  see below DEFAULT OPTS)</span>
+<span class="hljs-keyword">const</span> ga = <span class="hljs-keyword">new</span> GA(fitnessFunction, <span class="hljs-number">1000</span> <span class="hljs-comment">/* nGenes */</span>, <span class="hljs-string">'u32'</span> <span class="hljs-comment">/* dtype */</span>)
+
+<span class="hljs-comment">// Array&lt;TypedArray&gt;</span>
+<span class="hljs-keyword">const</span> bestCandidates = <span class="hljs-built_in">Array</span>.from(ga.search() <span class="hljs-comment">/* generator */</span>)</code></pre>
+				<p>In a nutshell:</p>
+				<ol>
+					<li>Specify <code>nGenes</code> (<strong>Int</strong> &gt; 0, see <strong>NGENES</strong> section below)</li>
+					<li>Declare a fitness function that accepts a candidate (typed array) and
+						returns a number. Each candidate is of length <code>nGenes</code>. The candidates
+						that score the highest will be favoured in the
+						selection and will make it to the next gene pool. (see <strong>FITNESS FUNCTION</strong> section below)
+					For multiple objectives (e.g. you want the solution to have more than one property: price, time, quality ...) supply an array of fitness functions.</li>
+					<li>Choose <code>dtype</code>, one of: <code>&quot;f64&quot; | &quot;f32&quot; | &quot;i32&quot; | &quot;i16&quot; | &quot;i8&quot; | &quot;u32&quot; | &quot;u16&quot; | &quot;u8&quot;</code> (see <strong>DTYPE</strong> section below)</li>
+					<li>[EXTRA] You might want a <code>decode</code> function as well (see <strong>DECODE FUNCTION</strong> section below).</li>
+				</ol>
+				<a href="#fitness-funct" id="fitness-funct" style="color: inherit; text-decoration: none;">
+					<h2>Fitness Funct</h2>
+				</a>
+				<a href="#signature" id="signature" style="color: inherit; text-decoration: none;">
+					<h3>Signature</h3>
+				</a>
+				<p><code>function(TypedArray): Number</code> <br></p>
+				<p>The number it returns may be positive or negative. It may be an integer
+				or a real number.</p>
+				<a href="#example" id="example" style="color: inherit; text-decoration: none;">
+					<h3>Example</h3>
+				</a>
+				<p>The previous example maximised the value of every gene. This example
+				computes the negative of the distance from roots of an equation:</p>
+				<pre><code class="language-js"><span class="hljs-comment">// find root of expr</span>
+<span class="hljs-keyword">const</span> expr = <span class="hljs-function">(<span class="hljs-params">x1, x2, x3, x4, x5, x6</span>) =&gt;</span> (<span class="hljs-built_in">Math</span>.log2(x1) * x2 ** x3 / x4) + x5 ** (<span class="hljs-built_in">Math</span>.log2(x6))
+
+<span class="hljs-keyword">const</span> fitness = <span class="hljs-function"><span class="hljs-params">xs</span> =&gt;</span> {
+  <span class="hljs-keyword">const</span> val = -(<span class="hljs-built_in">Math</span>.abs(expr(...xs)))
+  <span class="hljs-keyword">if</span> (<span class="hljs-built_in">Object</span>.is(<span class="hljs-literal">NaN</span>, val) || <span class="hljs-built_in">Object</span>.is(<span class="hljs-literal">Infinity</span>, val)) {
+    <span class="hljs-keyword">return</span> -<span class="hljs-literal">Infinity</span>
+  } <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">return</span> val
+  }
+}</code></pre>
+				<p>Fittest candidates score 0 (distance from the root is 0 meaning root has
+				been found), least fit candidates have a negative value.</p>
+				<p>Output from <a href="https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/math.ts">this example</a> which uses this fitness function:</p>
+				<pre><code class="language-haskell"><span class="hljs-title">log2</span>( <span class="hljs-number">98</span>) *   <span class="hljs-number">0</span>^ <span class="hljs-number">61</span> / <span class="hljs-number">209</span> +   <span class="hljs-number">0</span>^log2( <span class="hljs-number">76</span>) = <span class="hljs-number">0</span>
+<span class="hljs-title">log2</span>( <span class="hljs-number">39</span>) *   <span class="hljs-number">0</span>^<span class="hljs-number">228</span> / <span class="hljs-number">209</span> +   <span class="hljs-number">0</span>^log2(<span class="hljs-number">160</span>) = <span class="hljs-number">0</span>
+<span class="hljs-title">log2</span>(<span class="hljs-number">100</span>) *   <span class="hljs-number">0</span>^ <span class="hljs-number">89</span> / <span class="hljs-number">202</span> +   <span class="hljs-number">0</span>^log2(<span class="hljs-number">151</span>) = <span class="hljs-number">0</span>
+<span class="hljs-title">log2</span>(<span class="hljs-number">124</span>) *   <span class="hljs-number">0</span>^<span class="hljs-number">163</span> / <span class="hljs-number">247</span> +   <span class="hljs-number">0</span>^log2( <span class="hljs-number">76</span>) = <span class="hljs-number">0</span>
+<span class="hljs-title">log2</span>( <span class="hljs-number">31</span>) *   <span class="hljs-number">0</span>^<span class="hljs-number">166</span> /   <span class="hljs-number">9</span> +   <span class="hljs-number">0</span>^log2(<span class="hljs-number">166</span>) = <span class="hljs-number">0</span>
+<span class="hljs-title">log2</span>(<span class="hljs-number">221</span>) *   <span class="hljs-number">0</span>^<span class="hljs-number">100</span> / <span class="hljs-number">132</span> +   <span class="hljs-number">0</span>^log2(<span class="hljs-number">130</span>) = <span class="hljs-number">0</span>
+<span class="hljs-title">log2</span>(  <span class="hljs-number">2</span>) *   <span class="hljs-number">0</span>^<span class="hljs-number">157</span> / <span class="hljs-number">211</span> +   <span class="hljs-number">0</span>^log2(<span class="hljs-number">150</span>) = <span class="hljs-number">0</span>
+<span class="hljs-title">log2</span>(  <span class="hljs-number">2</span>) *   <span class="hljs-number">0</span>^<span class="hljs-number">100</span> / <span class="hljs-number">132</span> +   <span class="hljs-number">0</span>^log2(<span class="hljs-number">130</span>) = <span class="hljs-number">0</span>
+...   ...   ...   ...   ...   ...   ...   ...</code></pre>
+				<p>It&#39;s crucial that you reward candidate solutions for <strong>approximating</strong> i.e.
+				getting close to the solution. If they are a bit right -- add some fitness.</p>
+				<a href="#multiple-objectives" id="multiple-objectives" style="color: inherit; text-decoration: none;">
+					<h3>Multiple Objectives</h3>
+				</a>
+				<p>For multiple objectives (e.g. you want the solution to have more than one property: price, time, quality ...) supply an array of fitness functions:</p>
+				<pre><code class="language-js"><span class="hljs-keyword">const</span> fitness = [
+  <span class="hljs-function">(<span class="hljs-params">cand</span>) =&gt;</span> getSpeed(cand),
+  (cand) =&gt; getPrice(cand),
+  (cand) =&gt; getDurability(cand),
+  (cand) =&gt; getUserFriendliness(cand),
+]</code></pre>
+				<p>The functions may return numbers in any scale. E.g. <code>getSpeed</code> can return a number in [0, 100], <code>getPrice</code> can return a number in [100, 1000000] etc.
+				You might want to provide weights for each objective (by default each is 1.0 i.e. equally important):</p>
+				<pre><code class="language-js"><span class="hljs-keyword">const</span> opts = {
+  <span class="hljs-attr">weights</span>: [<span class="hljs-number">0.2</span>, <span class="hljs-number">0.4</span>, <span class="hljs-number">0.1</span>, <span class="hljs-number">0.01</span>] <span class="hljs-comment">// default [1.0, 1.0, 1.0, 1.0]</span>
+}</code></pre>
+				<a href="#optional-decode-function" id="optional-decode-function" style="color: inherit; text-decoration: none;">
+					<h3>[OPTIONAL] Decode Function</h3>
+				</a>
+				<p>It sometimes makes sense to have a <code>decode(cand)</code> function.</p>
+				<pre><code class="language-js"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">decode</span>(<span class="hljs-params">cand</span>) </span>{
+  <span class="hljs-keyword">return</span> {
+    <span class="hljs-attr">price</span>: cand[<span class="hljs-number">0</span>],
+    <span class="hljs-attr">category</span>: <span class="hljs-built_in">Math</span>.floor(cand[<span class="hljs-number">1</span>]),
+    <span class="hljs-attr">area</span>: <span class="hljs-built_in">Math</span>.floor(cand[<span class="hljs-number">2</span>]),
+    <span class="hljs-comment">// etc.</span>
+  }
+}</code></pre>
+				<p>And then it&#39;s <em>much</em> easier in the fitness function:</p>
+				<pre><code class="language-js"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fitnessFunction</span>(<span class="hljs-params">cand</span>) </span>{
+  <span class="hljs-keyword">const</span> { price, category, area, ... } = decode(cand)
+  <span class="hljs-keyword">let</span> fitnessScore = <span class="hljs-number">0</span>
+  fitnessScore += <span class="hljs-number">1000</span> - price
+  fitnessScore += getQualOfCat(category)
+  fitnessScore -= getCostOfArea(area)
+  <span class="hljs-comment">// other vars ...</span>
+  <span class="hljs-keyword">return</span> fitnessScore
+}</code></pre>
+				<p>More examples <a href="https://github.com/nl253/GeneticAlgo-JS/tree/master/examples">here</a>.</p>
+				<a href="#ngenes" id="ngenes" style="color: inherit; text-decoration: none;">
+					<h2>NGenes</h2>
+				</a>
+				<p>This is how many numbers each array will have. Each gene (number)
+				corresponds to a dimension in the search space you are exploring. For example:</p>
+				<table>
+					<tr>
+						<th>#</th>
+						<th>meaning</th>
+						<th>domain</th>
+					</tr>
+					<tr>
+						<td>gene #1</td>
+						<td>time</td>
+						<td>00:00 - 24:00</td>
+					</tr>
+					<tr>
+						<td>gene #2</td>
+						<td>day</td>
+						<td>0 - 365</td>
+					</tr>
+					<tr>
+						<td>gene #3</td>
+						<td>room number</td>
+						<td>1 - 128</td>
+					</tr>
+					<tr>
+						<td>...</td>
+						<td>...</td>
+						<td>...</td>
+					</tr>
+					<tr>
+						<td>gene #1000</td>
+						<td>building</td>
+						<td>A - Z</td>
+					</tr>
+				</table>
+				<p>For combinatorial problems, it makes sense to store an array of choices
+				and let genes be indices.</p>
+				<pre><code class="language-js"><span class="hljs-keyword">const</span> deparatment = [
+  <span class="hljs-string">"biology"</span>,
+  <span class="hljs-string">"mathematics"</span>,
+  <span class="hljs-string">"electical-engineering"</span>,
+  ...
+]
+
+<span class="hljs-keyword">const</span> room = [
+  <span class="hljs-string">"k21"</span>,
+  <span class="hljs-string">"k12"</span>,
+  <span class="hljs-string">"w4"</span>,
+  ...
+]
+
+<span class="hljs-comment">// etc.</span></code></pre>
+				<p>then each candidate can be a Uint array <code>[depIdx, roomIdx, ...]</code>.</p>
+				<p>A different approach you could take is devote 2 genes to <code>room</code> and let
+					the first be the ASCII code of the room (<code>a</code>..<code>z</code>) and the second room
+				number (<code>1..100</code> or something).</p>
+				<a href="#dtype" id="dtype" style="color: inherit; text-decoration: none;">
+					<h2>Dtype</h2>
+				</a>
+				<p>You need to set <code>dtype</code> yourself depending on the problem domain.</p>
+				<table>
+					<tr>
+						<th>data type</th>
+						<th>typed array</th>
+						<th>min value</th>
+						<th>max value</th>
+					</tr>
+					<tr>
+						<td><code>"u8"</code></td>
+						<td><code>UInt8Array</code></td>
+						<td>0</td>
+						<td>2<sup>8</sup></td>
+					</tr>
+					<tr>
+						<td><code>"u16"</code></td>
+						<td><code>UInt16Array</code></td>
+						<td>0</td>
+						<td>2<sup>16</sup></td>
+					</tr>
+					<tr>
+						<td><code>"u32"</code></td>
+						<td><code>UInt32Array</code></td>
+						<td>0</td>
+						<td>2<sup>32</sup></td>
+					</tr>
+					<tr>
+						<td><code>"i8"</code></td>
+						<td><code>Int8Array</code></td>
+						<td>-2<sup>8 - 1</sup></td>
+						<td>2<sup>8 - 1</sup></td>
+					</tr>
+					<tr>
+						<td><code>"i16"</code></td>
+						<td><code>Int16Array</code></td>
+						<td>-2<sup>16 - 1</sup></td>
+						<td>2<sup>16 - 1</sup></td>
+					</tr>
+					<tr>
+						<td><code>"i32"</code></td>
+						<td><code>Int32Array</code></td>
+						<td>-2<sup>32 - 1</sup></td>
+						<td>2<sup>32 - 1</sup></td>
+					</tr>
+					<tr>
+						<td><code>"f32"</code></td>
+						<td><code>Float32Array</code> (32-bit IEEE float) </td>
+						<td>1.2 * 10<sup>-38</sup></td>
+						<td>3.4 * 10<sup>38</sup></td>
+					</tr>
+					<tr>
+						<td><code>"f64"</code></td>
+						<td><code>Float64Array</code> (64-bit IEEE float)</td>
+						<td>5.0 * 10<sup>-324</sup></td>
+						<td>1.8 * 10<sup>308</sup></td>
+					</tr>
+				</table>
+				<p>You benefit <strong>a lot</strong> from restricting the search space by choosing e.g. <code>i8</code> as opposed to <code>i16</code>.</p>
+				<a href="#optional-default-codeoptscode" id="optional-default-codeoptscode" style="color: inherit; text-decoration: none;">
+					<h2>[OPTIONAL] Default <code>opts</code></h2>
+				</a>
+				<p>In addition to required parameters (<code>fitnessFunction</code>, <code>nGenes</code>,
+					<code>dtype</code>), you can also supply an object with configuration. I encourage
+					to begin with defaults and then tweak if necessary. Here are the
+				defaults:</p>
+				<pre><code class="language-js"><span class="hljs-keyword">const</span> { Duration, PopSize, NElite, NRounds, LogLvl } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'genetic-algo'</span>);
+
+<span class="hljs-keyword">const</span> opts = {
+  <span class="hljs-attr">logLvl</span>: LogLvl.SILENT,
+
+  <span class="hljs-comment">// stop condition</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// if you find that the algorithm gets stuck too quickly, increase it</span>
+  <span class="hljs-attr">timeOutMS</span>: Duration.seconds(<span class="hljs-number">30</span>),
+
+  <span class="hljs-comment">// stop condition</span>
+  <span class="hljs-attr">nRounds</span>: NRounds.LARGE, <span class="hljs-comment">/* 1000000 */</span>
+
+  <span class="hljs-comment">// how many candidate solutions to keep track of</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// it makes sense for it to be 100 - 1500 ish</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// if you find that the algorithm gets stuck too quickly, increase it</span>
+  <span class="hljs-attr">popSize</span>: PopSize.MEDIUM <span class="hljs-comment">/* 300 */</span>,
+
+  <span class="hljs-comment">// number of elite candidates (guaranteed to make it to next gene pool unaltered)</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// if you find that the algorithm gets stuck too quickly, decrease it</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// e.g. nElite: NElite.SMALL,</span>
+  <span class="hljs-comment">// e.g. nElite: NElite.MEDIUM,</span>
+  <span class="hljs-comment">// e.g. nElite: NElite.LARGE,</span>
+  <span class="hljs-comment">// e.g. nElite: 0.1</span>
+  <span class="hljs-comment">// e.g. nElite: [0.01, 0.1]</span>
+  <span class="hljs-comment">// e.g. nElite: { start:  0.1, end:  0.5, whenFit: 'constant' }</span>
+  <span class="hljs-comment">// e.g. nElite: { start: 0.01, end: 0.25, whenFit: 'increases' }</span>
+  <span class="hljs-comment">// e.g. nElite: { start:  0.1, end:  0.5, whenFit: 'decreases' }</span>
+  <span class="hljs-attr">nElite</span>: NElite.ADAPTIVE, <span class="hljs-comment">/* { start:  0.05, end: 0.15 } */</span>
+
+  <span class="hljs-comment">// probability of mutation</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// e.g. pMutate: PMutate.SMALL,</span>
+  <span class="hljs-comment">// e.g. pMutate: PMutate.MEDIUM,</span>
+  <span class="hljs-comment">// e.g. pMutate: PMutate.LARGE,</span>
+  <span class="hljs-comment">// e.g. pMutate: 0.1</span>
+  <span class="hljs-comment">// e.g. pMutate: [0.01, 0.1]</span>
+  <span class="hljs-comment">// e.g. pMutate: { start:  0.1, end:  0.5, whenFit: 'constant' }</span>
+  <span class="hljs-comment">// e.g. pMutate: { start: 0.01, end: 0.25, whenFit: 'increases' }</span>
+  <span class="hljs-comment">// e.g. pMutate: { start:  0.1, end:  0.5, whenFit: 'decreases' }</span>
+  <span class="hljs-attr">pMutate</span>: PMutate.ADAPTIVE, <span class="hljs-comment">/* { start:  0.1, end: 0.01, whenFit: 'increases' } */</span>
+
+  <span class="hljs-comment">// when mutating, target at least ? genes</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// e.g. nMutations: NMutations.SMALL,</span>
+  <span class="hljs-comment">// e.g. nMutations: NMutations.MEDIUM,</span>
+  <span class="hljs-comment">// e.g. nMutations: NMutations.LARGE,</span>
+  <span class="hljs-comment">// e.g. nMutations: 0.1</span>
+  <span class="hljs-comment">// e.g. nMutations: [0.01, 0.1]</span>
+  <span class="hljs-comment">// e.g. nMutations: { start:  0.1, end:  0.5, whenFit: 'constant' }</span>
+  <span class="hljs-comment">// e.g. nMutations: { start: 0.01, end: 0.25, whenFit: 'increases' }</span>
+  <span class="hljs-comment">// e.g. nMutations: { start:  0.1, end:  0.5, whenFit: 'decreases' }</span>
+  <span class="hljs-attr">nMutations</span>: NMutations.ADAPTIVE,  <span class="hljs-comment">/* { start: 10, end: 1, whenFit: 'decreases' } */</span>
+
+  <span class="hljs-comment">// when mutating, the value of a gene is replaced with a random value</span>
+  <span class="hljs-comment">// this specifies the range of the random value</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// when not specified, it's set intelligently based on dtype so not necessary to tweak</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// set it manually if you have an idea of where in the search space the solution might be</span>
+  <span class="hljs-comment">// this might cause it to converge faster</span>
+  <span class="hljs-comment">//</span>
+  <span class="hljs-comment">// e.g. randGeneVal: [-100, 2000] /* lower and upper bounds */</span>
+  <span class="hljs-comment">// e.g. randGeneVal: () =&gt; -200 + Math.random() * 1E4 /* custom function */</span>
+  <span class="hljs-attr">randGeneVal</span>: <span class="hljs-literal">undefined</span>,
+
+  <span class="hljs-comment">// when using multi-objective optimisation, you can specify relative weights for every objective</span>
+  <span class="hljs-comment">// (measured by each of fitness function from the array)</span>
+  <span class="hljs-comment">// see **FITNESS FUNCTION**</span>
+  <span class="hljs-comment">// e.g. weights: [0.2, 0.4, 1] /* needs to have the same length as the fitenss function array */</span>
+  <span class="hljs-attr">weights</span>: <span class="hljs-literal">undefined</span>,
+}</code></pre>
+				<p>For example:</p>
+				<pre><code class="language-js"><span class="hljs-keyword">const</span> opts = {
+  <span class="hljs-attr">timeOutMS</span>: Duration.seconds(<span class="hljs-number">30</span>),
+  <span class="hljs-attr">nElite</span>: <span class="hljs-number">0.1</span>,
+}
+<span class="hljs-keyword">const</span> nGenes = <span class="hljs-number">1000</span>
+<span class="hljs-keyword">const</span> dtype = <span class="hljs-string">'u32'</span>
+
+<span class="hljs-keyword">const</span> ga = <span class="hljs-keyword">new</span> GA(someFitnessFunct, nGenes, dtype, opts)</code></pre>
+				<a href="#theory-behind-genetic-algorithms" id="theory-behind-genetic-algorithms" style="color: inherit; text-decoration: none;">
+					<h2>Theory Behind Genetic Algorithms</h2>
+				</a>
+				<p>Genetic algorithms <strong>simulate the process of evolution</strong>. You are the
+					one specifying what each candidate should be good at to survive (fitness
+				function).</p>
+				<p>This algorithm uses a nature-inspired <strong>heuristic</strong> and has the
+					potential to achieve excellent results but it <em>might not</em> find the
+					optimal (ideal) solution. That said, for many applications the best
+					solution is not needed. By sacrificing a bit of quality you drastically
+					reduce the time needed to find a solution. Without such heuristics some
+					problems cannot be solved at all. These would NP complete problems to
+				which we do not have an algorithm which would run in polynomial time.</p>
+				<a href="#candidate" id="candidate" style="color: inherit; text-decoration: none;">
+					<h3>Candidate</h3>
+				</a>
+				<p>This is your &quot;DNA&quot; which represents a <strong>complete solution to the
+					problem</strong> you are trying to solve. The algorithm keeps track of a
+					population of those DNA strings. Candidates are modified in such a way
+					that the population approaches a solution. In this implementation
+					candidate solutions (chromosomes) are typed arrays. Depending on what
+					type of problem you are trying to solve you will use a different
+					<code>dtype</code>. Each candidate corresponds to a point in the search space that
+				you are exploring.</p>
+				<a href="#fitness-function" id="fitness-function" style="color: inherit; text-decoration: none;">
+					<h3>Fitness Function</h3>
+				</a>
+				<p>Measures the value of a candidate solution. The algorithm will perform well <em>if</em> your fitness function is good.</p>
+				<a href="#crossover" id="crossover" style="color: inherit; text-decoration: none;">
+					<h3>Crossover</h3>
+				</a>
+				<p>One of the two ways candidate solutions are modified. Crossover is all
+					about <strong>recombination</strong>. It is a <strong>binary operation</strong> that takes two
+					candidates and selects a portion of genes from one parent and the rest
+				from the other.</p>
+				<p>In an ideal scenario, you would inherit genes from fit individuals.
+					However, if you do that too often, you will loose novelty and you the
+					algorithm will get stuck very quickly. You can change how often fittest
+				candidates (elite) are chosen by changing <code>minPElite</code> and <code>maxPElite</code>.</p>
+				<p><strong>NOTE</strong> <code>nElite</code> needs to be non-zero for this to work.</p>
+				<a href="#mutations" id="mutations" style="color: inherit; text-decoration: none;">
+					<h3>Mutations</h3>
+				</a>
+				<p>One of the two ways candidate solutions are modified. This is a <strong>unary
+						operation</strong>. It takes a single candidate and <strong>randomly alters a single
+					gene.</strong> Mutations introduce <strong>novelty</strong>. If your algorithm gets stuck too
+					quickly it&#39;s because there was not enough novelty. In an ideal scenario,
+					fittest candidates would undergo mutation whereas the least fit would use
+					crossover. Furthermore, ideally, the algorithm would explore the fitness
+					landscape more at the beginning and then exploit the discovered peaks at the
+				end of running the algorithm.  This implementation does both for you automatically.</p>
+				<a href="#population" id="population" style="color: inherit; text-decoration: none;">
+					<h3>Population</h3>
+				</a>
+				<p>Population is a collection of candidate solutions. An initial population with
+				<code>popSize = 5</code>, <code>nGenes = 2</code>, <code>dtype = &#39;u8&#39;</code> might look something like this:</p>
+				<pre><code class="language-js"><span class="hljs-comment">// gene1 gene2</span>
+   [<span class="hljs-number">23</span>,     <span class="hljs-number">0</span>] <span class="hljs-comment">// candidate 1</span>
+   [ <span class="hljs-number">1</span>,    <span class="hljs-number">41</span>] <span class="hljs-comment">// candidate 2</span>
+   [<span class="hljs-number">10</span>,     <span class="hljs-number">1</span>] <span class="hljs-comment">// candidate 3</span>
+   [ <span class="hljs-number">1</span>,   <span class="hljs-number">100</span>] <span class="hljs-comment">// candidate 4</span>
+   [ <span class="hljs-number">0</span>,   <span class="hljs-number">222</span>] <span class="hljs-comment">// candidate 5</span></code></pre>
+				<a href="#profiling-with-eventemitter-api" id="profiling-with-eventemitter-api" style="color: inherit; text-decoration: none;">
+					<h2>Profiling with EventEmitter API</h2>
+				</a>
+				<p>The <code>GeneticAlgorithm</code> emits signals along with some information
+				which can be used for profiling.</p>
+				<p><strong>NOTE</strong> data emitted is in sub-bullets.</p>
+				<p><strong>Emitted Once</strong> <br></p>
+				<ol>
+					<li><code>&quot;start&quot;</code> after <code>.search()</code> and all initialisation is complete, before the 1st round</li>
+				</ol>
+				<p><strong>Emitted on Stop Condition Met</strong> <br></p>
+				<ol>
+					<li><code>&quot;timeout&quot;</code> when <code>timeOutMS</code> limit is reached.</li>
+					<li><code>&quot;stuck&quot;</code> when stuck in a local minimum.</li>
+					<li><code>&quot;rounds&quot;</code> when <code>nRounds</code> limit reached.</li>
+					<li><code>&quot;end&quot;</code> when finished.</li>
+				</ol>
+				<p><strong>Emitted Every Round</strong> <br></p>
+				<ol>
+					<li><code>&quot;round&quot;</code> on every round start (<strong>not</strong> the same as <code>&quot;rounds&quot;</code>).</li>
+					<li><code>&quot;op&quot;</code> on every selection and mutation / crossover operation application</li>
+				</ol>
+				<p>Example of extracting data from signals:</p>
+				<pre><code class="language-js">ga.on(<span class="hljs-string">'start'</span>, () =&gt; <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'[START] with opts'</span>, opts))
+ga.on(<span class="hljs-string">'stuck'</span>, () =&gt; <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`[END] stuck`</span>))
+ga.on(<span class="hljs-string">'timeout'</span>, () =&gt; <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`[END] timeout`</span>))
+ga.on(<span class="hljs-string">'end'</span>, () =&gt; <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`[END] after round #<span class="hljs-subst">${ga.rIdx}</span> (took <span class="hljs-subst">${ga.timeTakenMS <span class="hljs-regexp">/ SEC}sec)`))</span></span></span></code></pre>
+				<p>More examples <a href="https://github.com/nl253/GeneticAlgo-JS/tree/master/examples">here</a>.</p>
+				<a href="#performance" id="performance" style="color: inherit; text-decoration: none;">
+					<h2>Performance</h2>
+				</a>
+				<ul>
+					<li>The bottleneck is the fitness function.</li>
+					<li>Log less for better performance</li>
+				</ul>
+				<a href="#downsides" id="downsides" style="color: inherit; text-decoration: none;">
+					<h2>Downsides</h2>
+				</a>
+				<ul>
+					<li>single-threaded (but see <a href="https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/parallel.ts">parallel example</a> that uses the cluster module from node stdlib).</li>
+				</ul>
+				<a href="#license" id="license" style="color: inherit; text-decoration: none;">
+					<h2>License</h2>
+				</a>
+				<p>MIT</p>
+			</div>
+		</div>
+		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class="globals  ">
+						<a href="globals.html"><em>Globals</em></a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_examples_math_.html">&quot;examples/math&quot;</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_examples_multiobjective_.html">&quot;examples/multiobjective&quot;</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_examples_parallel_.html">&quot;examples/parallel&quot;</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_examples_simple_.html">&quot;examples/simple&quot;</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_index_.html">&quot;index&quot;</a>
+					</li>
+				</ul>
+			</nav>
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer class="with-border-bottom">
+	<div class="container">
+		<h2>Legend</h2>
+		<div class="tsd-legend-group">
+			<ul class="tsd-legend">
+				<li class="tsd-kind-module"><span class="tsd-kind-icon">Module</span></li>
+				<li class="tsd-kind-object-literal"><span class="tsd-kind-icon">Object literal</span></li>
+				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
+				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
+				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
+				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
+				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
+				<li class="tsd-kind-enum-member"><span class="tsd-kind-icon">Enumeration member</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-enum"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-enum"><span class="tsd-kind-icon">Method</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
+				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-interface"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-interface"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
+				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class"><span class="tsd-kind-icon">Accessor</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-class"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
+				<li class="tsd-kind-call-signature tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
+			</ul>
+		</div>
+	</div>
+</footer>
+<div class="container tsd-generator">
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
+</div>
+<div class="overlay"></div>
+<script src="assets/js/main.js"></script>
+<script>if (location.protocol == 'file:') document.write('<script src="assets/js/search.js"><' + '/script>');</script>
+</body>
+</html>

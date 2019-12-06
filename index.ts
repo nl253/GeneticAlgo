@@ -1,5 +1,4 @@
-/* eslint-disable max-classes-per-file,max-lines */
-
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-ts-ignore,max-classes-per-file,complexity */
 /**
  * You MAY override the following methods using inheritance (just extend GeneticAlgorithm):
  * - mutate
@@ -75,9 +74,9 @@ export class EventEmitter {
   private readonly events: Map<string, EventListener[]> = new Map();
 
   public emit(e: string, ...args: any[]): boolean {
-    const ouput = this.events.get(e) !== undefined;
+    const output = this.events.get(e) !== undefined;
     this.listeners(e, false).forEach((f) => f(...args));
-    return ouput;
+    return output;
   }
 
   // noinspection FunctionNamingConventionJS
@@ -256,21 +255,21 @@ const getNumOpt = (percentageOf: number | undefined, o: NumOpt): NumOptResolved 
     return getNumOpt(percentageOf, [o, o] as [number, number]);
   } else if (Array.isArray(o)) {
     const [start, end]: [number, number] = o as [number, number];
-    return getNumOpt(percentageOf, {start, end});
+    return getNumOpt(percentageOf, { start, end });
   }
 
   const opt = o as NumOptResolved;
 
   if (opt.whenFit === undefined) {
-    return getNumOpt(percentageOf, {whenFit: 'constant', ...opt});
+    return getNumOpt(percentageOf, { whenFit: 'constant', ...opt });
   }
 
   if (percentageOf !== undefined) {
-    const {start, end} = opt;
+    const { start, end } = opt;
     if (start < 1.0) {
-      return getNumOpt(percentageOf, {...opt, start: start * percentageOf});
+      return getNumOpt(percentageOf, { ...opt, start: start * percentageOf });
     } else if (end < 1.0) {
-      return getNumOpt(percentageOf, {...opt, end: end * percentageOf});
+      return getNumOpt(percentageOf, { ...opt, end: end * percentageOf });
     }
   }
 
@@ -296,14 +295,14 @@ const fmtTable = (heading: string, obj: object = {}, doUnderline = false, doNL =
 
 // noinspection JSUnusedGlobalSymbols
 const arrays = {
-  f64: (n: number) => new Float64Array(new ArrayBuffer(8 * n)),
-  f32: (n: number) => new Float32Array(new ArrayBuffer(4 * n)),
-  i32: (n: number) => new Int32Array(new ArrayBuffer(4 * n)),
-  u32: (n: number) => new Uint32Array(new ArrayBuffer(4 * n)),
-  i16: (n: number) => new Int16Array(new ArrayBuffer(2 * n)),
-  u16: (n: number) => new Uint16Array(new ArrayBuffer(2 * n)),
-  i8:  (n: number) => new Int8Array(new ArrayBuffer(n)),
-  u8:  (n: number) => new Uint8Array(new ArrayBuffer(n)),
+  f64: (n: number): Float64Array => new Float64Array(new ArrayBuffer(8 * n)),
+  f32: (n: number): Float32Array => new Float32Array(new ArrayBuffer(4 * n)),
+  i32: (n: number): Int32Array => new Int32Array(new ArrayBuffer(4 * n)),
+  u32: (n: number): Uint32Array => new Uint32Array(new ArrayBuffer(4 * n)),
+  i16: (n: number): Int16Array => new Int16Array(new ArrayBuffer(2 * n)),
+  u16: (n: number): Uint16Array => new Uint16Array(new ArrayBuffer(2 * n)),
+  i8:  (n: number): Int8Array => new Int8Array(new ArrayBuffer(n)),
+  u8:  (n: number): Uint8Array => new Uint8Array(new ArrayBuffer(n)),
 };
 
 export class GeneticAlgorithm extends EventEmitter {
@@ -363,6 +362,7 @@ export class GeneticAlgorithm extends EventEmitter {
   public op: Op = 'mutate';
 
 
+  // eslint-disable-next-line complexity
   public constructor(fitness: FitnessFunct | FitnessFunct[], nGenes: number, dtype: Dtype = 'f64', opts: UserOpts = {}) {
     super();
     this.nGenes = nGenes;
@@ -467,7 +467,7 @@ export class GeneticAlgorithm extends EventEmitter {
 
     if (this.logLvl >= LogLvl.VERBOSE) {
       this.on('op', () => {
-        const obj: { pMutate: string | number; nMutations: undefined | string | number } = {pMutate : `${(this.pMutate * 100).toFixed(0)}%`, nMutations: ''};
+        const obj: { pMutate: string | number; nMutations: undefined | string | number } = { pMutate : `${(this.pMutate * 100).toFixed(0)}%`, nMutations: '' };
         if (this.op === 'mutate') {
           obj.nMutations = this.nMutations;
         }
@@ -478,7 +478,7 @@ export class GeneticAlgorithm extends EventEmitter {
     }
   }
 
-  private optToGetter(name: string, {start, end, whenFit}: NumOptResolved, afterFunct?: (n: number) => number): void {
+  private optToGetter(name: string, { start, end, whenFit }: NumOptResolved, afterFunct?: (n: number) => number): void {
     if (start === end) {
       // @ts-ignore
       this[name] = start;
@@ -497,14 +497,14 @@ export class GeneticAlgorithm extends EventEmitter {
       f = function (): number { return start + this.percentageDone * range * (1 - (this.rank / this.popSize)); };
     }
     if (afterFunct === undefined) {
-      Object.defineProperty(this, name, {get: f});
+      Object.defineProperty(this, name, { get: f });
     } else {
       // @ts-ignore
       const f2 = function (): number {
         // @ts-ignore
         return afterFunct(f.bind(this)());
       };
-      Object.defineProperty(this, name, {get: f2});
+      Object.defineProperty(this, name, { get: f2 });
     }
   }
 
@@ -556,6 +556,7 @@ export class GeneticAlgorithm extends EventEmitter {
 
     return false; // TODO implement plateau detection
 
+    // eslint-disable-next-line multiline-comment-style
     // // track overall change for every objective
     // const change = arrays.f64(this.fitness.length);
     //
