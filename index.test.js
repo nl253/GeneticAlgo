@@ -1,5 +1,23 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type,complexity */
 // eslint-disable-next-line filenames/match-regex
 const { GeneticAlgorithm, Duration, NRounds } = require('./index');
+
+/**
+ * @callback FitnessFunct
+ * @param {TypedArray}
+ * @returns {number}
+ */
+
+/**
+ * @typedef {'u32'|'u16'|'u8'|'f64'|'f32'|'i32'|'i16'|'i8'} DType
+ * @typedef {Uint8Array|Uint16Array|Uint32Array|Int8Array|Int16Array|Int32Array|Float32Array|Float64Array} TypedArray
+ * @typedef {'start'|'end'|'round'|'op'|'timeout'|'score'} GeneticAlgorithmEvent
+ */
+
+/**
+ * @callback GeneticAlgorithmCheckFunct
+ * @param {GeneticAlgorithm}
+ */
 
 const DEFAULT_DURATION = Duration.seconds(1);
 const DEFAULT_EVENT = 'round';
@@ -15,6 +33,9 @@ const DEFAULT_OPTS = {
   nRounds: DEFAULT_NROUNDS,
 };
 
+/**
+ * @type {DType[]}
+ */
 const DATATYPES = [
   'u8',
   'u16',
@@ -26,6 +47,9 @@ const DATATYPES = [
   'f64',
 ];
 
+/**
+ * @type {Array<FitnessFunct|FitnessFunct[]>}
+ */
 const FUNCTS = [
   (candidate) => candidate.reduce((x, y) => x + y, 0),
   (candidate) => candidate.reduce((x, y) => x - y, 0),
@@ -36,22 +60,22 @@ const FUNCTS = [
 ];
 
 /**
- * @param {Function[]} checks
- * @param {{}} opts
- * @param {String} event
- * @param {String[]} dtypes
- * @param {(Function|Function[])[]} fitnessFuncts
+ * @param {GeneticAlgorithmCheckFunct[]} checks
+ * @param {Record<string, *>} opts
+ * @param {GeneticAlgorithmEvent} event
+ * @param {DType[]} dtypes
+ * @param {FitnessFunct|FitnessFunct[]} fitnessFuncts
  */
-function simulate(
+const simulate = (
   checks = [],
   opts = {},
   event = DEFAULT_EVENT,
   dtypes = DATATYPES,
   fitnessFuncts = FUNCTS,
-) {
+) => {
+  const mergedOpts = { ...DEFAULT_OPTS, ...opts };
   for (const dtype of dtypes) {
     for (const fitness of fitnessFuncts) {
-      const mergedOpts = Object.assign({}, Object.assign(DEFAULT_OPTS, opts));
       const ga = new GeneticAlgorithm(fitness, DEFAULT_NGENES, dtype, mergedOpts);
       for (const f of checks) {
         ga.on(event, () => f(ga));
@@ -59,7 +83,7 @@ function simulate(
       Array.from(ga.search());
     }
   }
-}
+};
 
 describe('public variables are accessible', () => {
   test('search is a public method on GeneticAlgorithm', () => {
@@ -109,62 +133,29 @@ describe('public variables are accessible', () => {
       (ga) => expect(ga.nthBestCand(0)).toStrictEqual(ga.bestCand),
     ]);
   });
-
 });
 
 describe('internals are valid', () => {
 
-  test('pop TYPED ARRAY is valid and defined (and public) when starting', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('pop'),
-      (ga) => expect(ga.pop).toHaveProperty('length'),
-      (ga) => expect(ga.pop.length > 0).toBeTruthy(),
-      (ga) => expect(ga.pop).not.toContain(null),
-      (ga) => expect(ga.pop).not.toContain(undefined),
-      (ga) => expect(ga.pop).not.toContain(Infinity),
-      (ga) => expect(ga.pop).not.toContain(-Infinity),
-      (ga) => expect(ga.pop).not.toContain(NaN),
-    ], 'start');
-  });
-
-  test('idxs TYPED ARRAY is valid and defined (and public) when starting', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('idxs'),
-      (ga) => expect(ga.idxs).toHaveProperty('length'),
-      (ga) => expect(ga.idxs.length > 0).toBeTruthy(),
-      (ga) => expect(ga.idxs).not.toContain(null),
-      (ga) => expect(ga.idxs).not.toContain(undefined),
-      (ga) => expect(ga.idxs).not.toContain(Infinity),
-      (ga) => expect(ga.idxs).not.toContain(-Infinity),
-      (ga) => expect(ga.idxs).not.toContain(NaN),
-    ], 'start');
-  });
-
-  test('bestScores TYPED ARRAY is valid and defined (and public) when starting', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('bestScores'),
-      (ga) => expect(ga.bestScores).toHaveProperty('length'),
-      (ga) => expect(ga.bestScores.length > 0).toBeTruthy(),
-      (ga) => expect(ga.bestScores).not.toContain(null),
-      (ga) => expect(ga.bestScores).not.toContain(undefined),
-      (ga) => expect(ga.bestScores).not.toContain(Infinity),
-      (ga) => expect(ga.bestScores).not.toContain(-Infinity),
-      (ga) => expect(ga.bestScores).not.toContain(NaN),
-    ], 'start');
-  });
-
-  test('scores TYPED ARRAY is valid and defined (and public) when starting', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('scores'),
-      (ga) => expect(ga.scores).toHaveProperty('length'),
-      (ga) => expect(ga.scores.length > 0).toBeTruthy(),
-      (ga) => expect(ga.scores).not.toContain(null),
-      (ga) => expect(ga.scores).not.toContain(undefined),
-      (ga) => expect(ga.scores).not.toContain(Infinity),
-      (ga) => expect(ga.scores).not.toContain(-Infinity),
-      (ga) => expect(ga.scores).not.toContain(NaN),
-    ], 'start');
-  });
+  for (const prop of [
+    'idxs',
+    'pop',
+    'bestScores',
+    'scores'
+  ]) {
+    test(`${prop} TYPED ARRAY is valid, defined and public when starting`, () => {
+      simulate([
+        (ga) => expect(ga).toHaveProperty(prop),
+        (ga) => expect(ga[prop]).toHaveProperty('length'),
+        (ga) => expect(ga[prop].length > 0).toBe(true),
+        (ga) => expect(ga[prop]).not.toContain(null),
+        (ga) => expect(ga[prop]).not.toContain(undefined),
+        (ga) => expect(ga[prop]).not.toContain(Infinity),
+        (ga) => expect(ga[prop]).not.toContain(-Infinity),
+        (ga) => expect(ga[prop]).not.toContain(NaN),
+      ], {}, 'start');
+    });
+  }
 
   test('mutation & crossover modify pop', () => {
     simulate([
@@ -184,13 +175,13 @@ describe('internals are valid', () => {
           expect(ga.percentageDoneRounds).toBeGreaterThan(percentageDoneRounds);
           expect(ga.rIdx).toBeGreaterThan(rIdx);
           expect(ga.timeTakenMS).toBeGreaterThan(timeTakenMS);
-          expect(ga.percentageDoneTime).toBeGreaterThan(percentageDoneTime)
+          expect(ga.percentageDoneTime).toBeGreaterThan(percentageDoneTime);
         }, DEFAULT_DELAY);
       },
     ]);
   });
 
-  describe('test dynamic vars', () => {
+  describe('dynamic vars', () => {
     const vars = [
       { name: 'pMutate', percentageOf: 1 },
       { name: 'nMutations', percentageOf: DEFAULT_NGENES },
@@ -200,25 +191,55 @@ describe('internals are valid', () => {
       const { name, percentageOf } = v;
       const lBound = Math.random() / 2;
       const uBound = lBound + Math.random() / 2;
-      let lowerBound = percentageOf === 1 ? lBound * percentageOf : Math.ceil(lBound * percentageOf);
-      let upperBound = percentageOf === 1 ? uBound * percentageOf : Math.ceil(uBound * percentageOf);
+      let lowerBound = percentageOf === 1 ? lBound : Math.ceil(lBound * percentageOf);
+      let upperBound = percentageOf === 1 ? uBound : Math.ceil(uBound * percentageOf);
+
       for (let i = 0; i < 2; i++) {
         describe(`${name} with ${i === 0 ? 'inc' : 'dec'}creasing bounds ${lowerBound}..${upperBound}`, () => {
           const smaller = Math.min(upperBound, lowerBound);
           const larger = Math.max(upperBound, lowerBound);
-          const checkBetween = x => {
+
+          /**
+           * @param {number} x
+           */
+          const checkBetween = (x) => {
             expect(x).toBeGreaterThanOrEqual(smaller);
             expect(x).toBeLessThanOrEqual(larger);
           };
+
           test(`using [${lowerBound}, ${upperBound}] notation`, () => {
-            simulate([(ga) => checkBetween(ga[name])], { pMutate: [lowerBound, upperBound] }, 'op');
+            simulate([(ga) => checkBetween(ga[name])], { [name]: [lowerBound, upperBound] }, 'op');
           });
+
           test(`using { start: ${lowerBound}, end: ${upperBound} } notation`, () => {
             simulate([(ga) => checkBetween(ga[name])], { [name]: { start: lowerBound, end: upperBound } }, 'op');
           });
+
           test(`using { start: ${lowerBound}, end: ${upperBound}, whenFit: "constant" } notation`, () => {
-            simulate([(ga) => checkBetween(ga[name])], { [name]: { start: lowerBound, end: upperBound, whenFit: 'constant' } }, 'op');
+            simulate(
+              [(ga) => expect(ga[name]).toBeCloseTo(lowerBound)],
+              { [name]: { start: lowerBound, end: lowerBound, whenFit: 'constant' } },
+              'op',
+            );
           });
+
+          for (const bound of [lowerBound, upperBound]) {
+            test(`using { start: ${lowerBound}, end: ${upperBound}, whenFit: "constant" } notation`, () => {
+              simulate(
+                [(ga) => expect(ga[name]).toBeCloseTo(bound)],
+                { [name]: { start: bound, end: bound, whenFit: 'constant' } },
+                'op',
+              );
+            });
+
+            test(`using ${bound} notation`, () => {
+              simulate(
+                [(ga) => expect(ga[name]).toBeCloseTo(bound)],
+                { [name]: bound },
+                'op',
+              );
+            });
+          }
         });
         // swap
         const tmp = upperBound;
@@ -247,8 +268,15 @@ test('scores are improving with time', () => {
 
 describe('ga does well on simple problems', () => {
   const f = (cand) => cand.reduce((x, y) => x + y, 0);
-  for (const dt of ['u', 'i']) {
-    for (const nBits of [8, 16, 32]) {
+  for (const dt of [
+    'u',
+    'i'
+  ]) {
+    for (const nBits of [
+      8,
+      16,
+      32
+    ]) {
       const bestPossible = 2 ** (dt === 'u' ? nBits : nBits - 1) * DEFAULT_NGENES;
       const dtype = `${dt}${nBits}`;
       const timeSec = 5;
@@ -256,9 +284,7 @@ describe('ga does well on simple problems', () => {
       const timeOutMS = Duration.seconds(timeSec);
       test(`dtype = ${dtype}, best possible = ${bestPossible} (${timeSec} sec)`, () => {
         simulate(
-          [
-            (ga) => expect(f(ga.bestCand) / bestPossible).toBeGreaterThan(DEFAULT_MIN_PERF),
-          ],
+          [(ga) => expect(f(ga.bestCand) / bestPossible).toBeGreaterThan(DEFAULT_MIN_PERF)],
           { timeOutMS, nRounds },
           'end',
           [dtype],

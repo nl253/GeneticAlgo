@@ -1,10 +1,6 @@
 {
   "files": [
-    "index.ts",
-    "examples/simple.ts",
-    "examples/math.ts",
-    "examples/parallel.ts",
-    "examples/multiobjective.ts"
+    "index.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",

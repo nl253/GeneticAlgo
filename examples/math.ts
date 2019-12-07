@@ -3,15 +3,14 @@
  */
 import {
   GeneticAlgorithm as GA,
-  TypedArray,
   Duration,
   NMutations,
-  LogLvl,
+  LogLvl, FitnessFunct,
 } from '..';
 
-const expr = (x1: number, x2: number, x3: number, x4: number, x5: number, x6: number) => (Math.log2(x1) * x2 ** x3 / x4) + x5 ** (Math.log2(x6));
+const expr = (x1: number, x2: number, x3: number, x4: number, x5: number, x6: number): number => (Math.log2(x1) * x2 ** x3 / x4) + x5 ** (Math.log2(x6));
 
-const fitness = (xs: TypedArray) => {
+const fitness: FitnessFunct = (xs) => {
   // @ts-ignore
   const val = -(Math.abs(expr(...xs)));
   // some math functions will return Infinity or NaN (e.g. division by 0)

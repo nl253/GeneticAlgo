@@ -2,7 +2,7 @@
 /**
  * Sets the meta-parameters of the Genetic Algorithm by running sub-genetic algorithms with different settings.
  */
-import { GeneticAlgorithm as GA } from '../index';
+import { FitnessFunct, GeneticAlgorithm as GA, TypedArray } from '..';
 
 const SEC = 1000;
 const MIN = 60 * SEC;
@@ -14,7 +14,7 @@ const opts = {
 };
 const nGenes = 7;
 
-function decodeCand(cand): object {
+const decodeCand = (cand: TypedArray): object => {
   const minNGeneMut = 1 + cand[0];
   const maxNGeneMut = Math.min(300, minNGeneMut + cand[1]);
   const popSize = 80 + cand[2];
@@ -27,10 +27,10 @@ function decodeCand(cand): object {
     popSize,
     timeOutMS: 12 * SEC,
   };
-}
+};
 
-function fitness(cand) {
-  const f = c => c.reduce((g1, g2) => g1 + g2, 0);
+const fitness: FitnessFunct = (cand) => {
+  const f: FitnessFunct = (c) => c.reduce((g1, g2) => g1 + g2, 0);
   const maximizer = new GA(f, 300, 'i32', decodeCand(cand));
   // [optional] use the EventEmitter API for getting profiling
   maximizer.on('start', (time, me) => console.log('sub-algorithm [START]', me));
@@ -39,12 +39,12 @@ function fitness(cand) {
   maximizer.on('end', (rIdx, _date, ms) => console.log(`sub-algorithm [END] after round #${rIdx} (took ${ms / SEC}sec)`));
   const bestCand = maximizer.search().next().value;
   return f(bestCand);
-}
+};
 
 const metaParamSetter = new GA(fitness, nGenes, 'u8', opts);
 
 // [optional] use the EventEmitter API for getting profiling
-metaParamSetter.on('start', time => console.log(`[START] at ${new Date(time).toTimeString()}`));
+metaParamSetter.on('start', (time) => console.log(`[START] at ${new Date(time).toTimeString()}`));
 metaParamSetter.on('best', (_, score) => console.log(score));
 metaParamSetter.on('stuck', () => console.log('[END] stuck'));
 metaParamSetter.on('timeout', () => console.log('[END] timeout'));

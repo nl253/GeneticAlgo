@@ -100,14 +100,14 @@
     ]
   },
   "scripts": {
-    "build": "npx tsc -p .",
-    "watch": "npx tsc -p . --watch",
+    "build": "npx tsc -p ./tsconfig.json",
+    "watch": "npx tsc -p ./tsconfig.json --watch",
     "build:examples": "npx tsc -p ./tsconfig.example.json",
     "example:simple": "node ./examples/simple.js",
     "example:math": "node ./examples/math.js",
     "example:parallel": "node ./examples/parallel.js",
     "example:multiobjective": "node ./examples/multiobjective.js",
-    "test": "npx jest",
+    "test": "npx jest --ci",
     "doc": "bash -c \"echo -e 'GENERATING DOCS\\n' && rm -rf ./docs && npx typedoc --readme ./README.md --out ./docs\"",
     "doc:open": "bash -c \"npm run doc && $BROWSER ./docs/index.html\"",
     "doc:publish": "bash -c \"echo -e 'PUBLISHING DOCS\\n' && npm run doc && git add ./docs && git commit -am 'Update docs' -n && git push\"",
@@ -122,6 +122,6 @@
     "lint:deps:license": "npx license-checker --summary",
     "loc": "bash -c \"tokei -- $(git ls-files | grep -v docs | grep -v bin)\"",
     "pretest": "npm run build",
-    "prepublishOnly": "bash -c \"npm run build && npm run doc\"",
+    "prepublishOnly": "bash -c \"npm run build && npm run doc\""
   }
 }
