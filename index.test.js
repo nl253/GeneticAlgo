@@ -16,7 +16,7 @@ const { GeneticAlgorithm, Duration, NRounds } = require('./index');
 
 /**
  * @callback GeneticAlgorithmCheckFunct
- * @param {GeneticAlgorithm}
+ * @param {GeneticAlgorithm} ga
  */
 
 const DEFAULT_DURATION = Duration.seconds(1);
@@ -85,17 +85,40 @@ const simulate = (
   }
 };
 
-describe('public variables are accessible', () => {
+describe('variables are initialised and accessible', () => {
+
   test('search is a public method on GeneticAlgorithm', () => {
     simulate([(ga) => expect(ga).toHaveProperty('search')]);
   });
 
-  test('rIdx INT is defined (and public) during runtime', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('rIdx'),
-      (ga) => expect(Number.isInteger(ga.rIdx)).toBeTruthy(),
-    ]);
-  });
+  simulate([
+    (ga) => {
+      test('rIdx INT is defined (and public) during runtime', () => {
+        expect(ga).toHaveProperty('rIdx');
+        expect(Number.isInteger(ga.rIdx)).toBeTruthy();
+      });
+    },
+    (ga) => {
+      test('cIdx is defined (and public) during runtime', () => {
+        expect(ga).toHaveProperty('cIdx');
+        expect(Number.isInteger(ga.cIdx)).toBeTruthy();
+      });
+    },
+    (ga) => {
+      test('rank is defined (and public) during runtime', () => {
+        expect(ga).toHaveProperty('rank');
+        expect(Number.isInteger(ga.rank)).toBeTruthy();
+      });
+    },
+    (ga) => {
+      test('best candidate (0th best) is accessible and is not empty', () => {
+        expect(ga).toHaveProperty('bestCand');
+        expect(ga.bestCand).toHaveProperty('length');
+        expect(ga).toHaveProperty('nthBestCand');
+        expect(ga.nthBestCand(0)).toStrictEqual(ga.bestCand);
+      });
+    },
+  ]);
 
   test('op ("mutate" or "crossover") is defined (and public) during runtime after either occurrs', () => {
     simulate([
@@ -104,35 +127,19 @@ describe('public variables are accessible', () => {
     ], {}, 'op');
   });
 
-  test('rank INT is defined (and public) during runtime', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('rank'),
-      (ga) => expect(Number.isInteger(ga.rank)).toBeTruthy(),
-    ]);
-  });
-
-  test('cIdx is defined (and public) during runtime', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('cIdx'),
-      (ga) => expect(Number.isInteger(ga.cIdx)).toBeTruthy(),
-    ]);
-  });
-
-  test('start time (startTm INT) is defined and public during runtime', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('startTm'),
-      (ga) => expect(Number.isInteger(ga.startTm)).toBeTruthy(),
-    ], {}, 'start');
-  });
-
-  test('best candidate (0th best) is accessible and is not empty', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('bestCand'),
-      (ga) => expect(ga.bestCand).toHaveProperty('length'),
-      (ga) => expect(ga).toHaveProperty('nthBestCand'),
-      (ga) => expect(ga.nthBestCand(0)).toStrictEqual(ga.bestCand),
-    ]);
-  });
+  simulate([
+    (ga) => {
+      test('start time (startTm INT) is defined and public during runtime', () => {
+        expect(ga).toHaveProperty('startTm');
+        expect(Number.isInteger(ga.startTm)).toBeTruthy();
+      });
+    },
+    (ga) => {
+      test('search is a public method on GeneticAlgorithm', () => {
+        expect(ga).toHaveProperty('search');
+      });
+    },
+  ], {}, 'start');
 });
 
 describe('internals are valid', () => {
@@ -208,7 +215,20 @@ describe('internals are valid', () => {
           };
 
           test(`using [${lowerBound}, ${upperBound}] notation`, () => {
-            simulate([(ga) => checkBetween(ga[name])], { [name]: [lowerBound, upperBound] }, 'op');
+            simulate([
+              (ga) => checkBetween(ga[name]),
+              (ga) => {
+                const snapshot1 = ga[name];
+                setTimeout(() => {
+                  const snapshot2 = ga[name];
+                  if (lowerBound < upperBound) {
+                    expect(snapshot2).toBeGreaterThanOrEqual(snapshot1);
+                  } else if (lowerBound > upperBound) {
+                    expect(snapshot2).toBeLessThanOrEqual(snapshot1);
+                  }
+                }, DEFAULT_DELAY);
+              },
+            ], { [name]: [lowerBound, upperBound] }, 'op');
           });
 
           test(`using { start: ${lowerBound}, end: ${upperBound} } notation`, () => {
@@ -254,11 +274,11 @@ describe('internals are valid', () => {
 test('scores are improving with time', () => {
   simulate([
     (ga) => {
-      const snaphshot1 = ga.scores;
+      const snapshot1 = ga.scores;
       const afterDelay = () => {
-        const snaphshot2 = ga.scores;
-        const sum1 = snaphshot1.reduce((x, y) => x + y, 0);
-        const sum2 = snaphshot2.reduce((x, y) => x + y, 0);
+        const snapshot2 = ga.scores;
+        const sum1 = snapshot1.reduce((x, y) => x + y, 0);
+        const sum2 = snapshot2.reduce((x, y) => x + y, 0);
         expect(sum2).toBeGreaterThan(sum1);
       };
       setTimeout(afterDelay, DEFAULT_DELAY);
@@ -268,6 +288,9 @@ test('scores are improving with time', () => {
 
 describe('ga does well on simple problems', () => {
   const f = (cand) => cand.reduce((x, y) => x + y, 0);
+  const timeSec = 5;
+  const timeOutMS = Duration.seconds(timeSec);
+  const nRounds = NRounds.MEDIUM;
   for (const dt of [
     'u',
     'i'
@@ -279,9 +302,6 @@ describe('ga does well on simple problems', () => {
     ]) {
       const bestPossible = 2 ** (dt === 'u' ? nBits : nBits - 1) * DEFAULT_NGENES;
       const dtype = `${dt}${nBits}`;
-      const timeSec = 5;
-      const nRounds = NRounds.MEDIUM;
-      const timeOutMS = Duration.seconds(timeSec);
       test(`dtype = ${dtype}, best possible = ${bestPossible} (${timeSec} sec)`, () => {
         simulate(
           [(ga) => expect(f(ga.bestCand) / bestPossible).toBeGreaterThan(DEFAULT_MIN_PERF)],
