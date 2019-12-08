@@ -26,6 +26,7 @@ const DEFAULT_NROUNDS = 20;
 const DEFAULT_NGENES = 100;
 const DEFAULT_POPSIZE = 200;
 const DEFAULT_MIN_PERF = 0.85;
+const FLOAT_DELTA = 1E-4;
 
 const DEFAULT_OPTS = {
   timeOutMS: DEFAULT_DURATION,
@@ -60,25 +61,22 @@ const FUNCTS = [
 ];
 
 /**
- * @param {GeneticAlgorithmCheckFunct[]} checks
+ * @param {Object<GeneticAlgorithmCheckFunct>|GeneticAlgorithmCheckFunct} checks
  * @param {Record<string, *>} opts
- * @param {GeneticAlgorithmEvent} event
  * @param {DType[]} dtypes
  * @param {FitnessFunct|FitnessFunct[]} fitnessFuncts
  */
-const simulate = (
-  checks = [],
-  opts = {},
-  event = DEFAULT_EVENT,
-  dtypes = DATATYPES,
-  fitnessFuncts = FUNCTS,
-) => {
+const simulate = (checks = {}, opts = {}, dtypes = DATATYPES, fitnessFuncts = FUNCTS) => {
   const mergedOpts = { ...DEFAULT_OPTS, ...opts };
   for (const dtype of dtypes) {
     for (const fitness of fitnessFuncts) {
       const ga = new GeneticAlgorithm(fitness, DEFAULT_NGENES, dtype, mergedOpts);
-      for (const f of checks) {
-        ga.on(event, () => f(ga));
+      if (checks.constructor.name !== 'Object') {
+        ga.on(DEFAULT_EVENT, () => checks(ga));
+      } else {
+        for (const event of Object.keys(checks)) {
+          ga.on(event, () => checks[event](ga));
+        }
       }
       Array.from(ga.search());
     }
@@ -87,106 +85,79 @@ const simulate = (
 
 describe('variables are initialised and accessible', () => {
 
-  test('search is a public method on GeneticAlgorithm', () => {
-    simulate([(ga) => expect(ga).toHaveProperty('search')]);
-  });
-
-  simulate([
-    (ga) => {
-      test('rIdx INT is defined (and public) during runtime', () => {
-        expect(ga).toHaveProperty('rIdx');
-        expect(Number.isInteger(ga.rIdx)).toBeTruthy();
-      });
-    },
-    (ga) => {
-      test('cIdx is defined (and public) during runtime', () => {
-        expect(ga).toHaveProperty('cIdx');
-        expect(Number.isInteger(ga.cIdx)).toBeTruthy();
-      });
-    },
-    (ga) => {
-      test('rank is defined (and public) during runtime', () => {
-        expect(ga).toHaveProperty('rank');
-        expect(Number.isInteger(ga.rank)).toBeTruthy();
-      });
-    },
-    (ga) => {
-      test('best candidate (0th best) is accessible and is not empty', () => {
-        expect(ga).toHaveProperty('bestCand');
-        expect(ga.bestCand).toHaveProperty('length');
-        expect(ga).toHaveProperty('nthBestCand');
-        expect(ga.nthBestCand(0)).toStrictEqual(ga.bestCand);
-      });
-    },
-  ]);
-
   test('op ("mutate" or "crossover") is defined (and public) during runtime after either occurrs', () => {
-    simulate([
-      (ga) => expect(ga).toHaveProperty('op'),
-      (ga) => expect(ga.op).toMatch(/^(mutate|crossover)$/),
-    ], {}, 'op');
+    const op = (ga) => {
+      expect(ga).toHaveProperty('op');
+      expect(ga.op).toMatch(/^(mutate|crossover)$/);
+    };
+    simulate({ op });
   });
 
-  simulate([
-    (ga) => {
-      test('start time (startTm INT) is defined and public during runtime', () => {
-        expect(ga).toHaveProperty('startTm');
-        expect(Number.isInteger(ga.startTm)).toBeTruthy();
+  const start = (ga) => {
+    for (const internalVar of ['cIdx', 'rIdx', 'rank']) {
+      test(`${internalVar} INT is defined (and public) during runtime`, () => {
+        expect(ga).toHaveProperty(internalVar);
+        expect(Number.isInteger(ga[internalVar])).toBeTruthy();
       });
-    },
-    (ga) => {
-      test('search is a public method on GeneticAlgorithm', () => {
-        expect(ga).toHaveProperty('search');
-      });
-    },
-  ], {}, 'start');
+    }
+    test('best candidate (0th best) is accessible and is not empty', () => {
+      expect(ga).toHaveProperty('bestCand');
+      expect(ga.bestCand).toHaveProperty('length');
+      expect(ga).toHaveProperty('nthBestCand');
+      expect(ga.nthBestCand(0)).toStrictEqual(ga.bestCand);
+    });
+    test('start time (startTm INT) is defined and public during runtime', () => {
+      expect(ga).toHaveProperty('startTm');
+      expect(Number.isInteger(ga.startTm)).toBeTruthy();
+    });
+    test('search is a public method on GeneticAlgorithm', () => {
+      expect(ga).toHaveProperty('search');
+    });
+  };
+  simulate({ start });
 });
 
 describe('internals are valid', () => {
 
-  for (const prop of [
-    'idxs',
-    'pop',
-    'bestScores',
-    'scores'
-  ]) {
+  for (const prop of ['idxs', 'pop', 'bestScores', 'scores']) {
     test(`${prop} TYPED ARRAY is valid, defined and public when starting`, () => {
-      simulate([
-        (ga) => expect(ga).toHaveProperty(prop),
-        (ga) => expect(ga[prop]).toHaveProperty('length'),
-        (ga) => expect(ga[prop].length > 0).toBe(true),
-        (ga) => expect(ga[prop]).not.toContain(null),
-        (ga) => expect(ga[prop]).not.toContain(undefined),
-        (ga) => expect(ga[prop]).not.toContain(Infinity),
-        (ga) => expect(ga[prop]).not.toContain(-Infinity),
-        (ga) => expect(ga[prop]).not.toContain(NaN),
-      ], {}, 'start');
+      const start = (ga) => {
+        expect(ga).toHaveProperty(prop);
+        const val = ga[prop];
+        expect(val).toHaveProperty('length');
+        expect(val.length > 0).toBe(true);
+        expect(val).not.toContain(null);
+        expect(val).not.toContain(undefined);
+        expect(val).not.toContain(Infinity);
+        expect(val).not.toContain(-Infinity);
+        expect(val).not.toContain(NaN);
+      };
+      simulate({ start });
     });
   }
 
-  test('mutation & crossover modify pop', () => {
-    simulate([
-      (ga) => {
-        const snaphshot = ga.pop;
-        setTimeout(() => expect(ga.pop).not.arrayContaining(snaphshot), DEFAULT_DELAY);
-      },
-    ]);
-  });
-
-  test('time and % done are advancing', () => {
-    simulate([
-      (ga) => {
-        const { percentageDone, rIdx, percentageDoneTime, percentageDoneRounds, timeTakenMS } = ga.percentageDone;
-        setTimeout(() => {
-          expect(ga.percentageDone).toBeGreaterThan(percentageDone);
-          expect(ga.percentageDoneRounds).toBeGreaterThan(percentageDoneRounds);
-          expect(ga.rIdx).toBeGreaterThan(rIdx);
-          expect(ga.timeTakenMS).toBeGreaterThan(timeTakenMS);
-          expect(ga.percentageDoneTime).toBeGreaterThan(percentageDoneTime);
-        }, DEFAULT_DELAY);
-      },
-    ]);
-  });
+  simulate(
+    (ga) => {
+      test('mutation & crossover modify pop', () => {
+        const snapshot = ga.pop;
+        const afterDelay = () => expect(ga.pop).not.arrayContaining(snapshot);
+        setTimeout(afterDelay, DEFAULT_DELAY);
+      });
+      test('time and % done are advancing', () => {
+        const { percentageDone, rIdx, percentageDoneTime, percentageDoneRounds, timeTakenMS } = ga;
+        const afterDelay = () => {
+          if (ga.rIdx - rIdx >= 100) {
+            expect(ga.percentageDone).toBeGreaterThan(percentageDone);
+            expect(ga.percentageDoneRounds).toBeGreaterThan(percentageDoneRounds);
+            expect(ga.rIdx).toBeGreaterThan(rIdx);
+            expect(ga.timeTakenMS).toBeGreaterThan(timeTakenMS);
+            expect(ga.percentageDoneTime).toBeGreaterThan(percentageDoneTime);
+          }
+        };
+        setTimeout(afterDelay, DEFAULT_DELAY);
+      });
+    }
+  );
 
   describe('dynamic vars', () => {
     const vars = [
@@ -194,10 +165,10 @@ describe('internals are valid', () => {
       { name: 'nMutations', percentageOf: DEFAULT_NGENES },
       { name: 'nElite', percentageOf: DEFAULT_POPSIZE },
     ];
-    for (const v of vars) {
-      const { name, percentageOf } = v;
-      const lBound = Math.random() / 2;
-      const uBound = lBound + Math.random() / 2;
+
+    for (const { name, percentageOf } of vars) {
+      const lBound = parseFloat((Math.random() / 2).toFixed(2));
+      const uBound = parseFloat((lBound + Math.random() / 2).toFixed(2));
       let lowerBound = percentageOf === 1 ? lBound : Math.ceil(lBound * percentageOf);
       let upperBound = percentageOf === 1 ? uBound : Math.ceil(uBound * percentageOf);
 
@@ -206,61 +177,42 @@ describe('internals are valid', () => {
           const smaller = Math.min(upperBound, lowerBound);
           const larger = Math.max(upperBound, lowerBound);
 
-          /**
-           * @param {number} x
-           */
-          const checkBetween = (x) => {
-            expect(x).toBeGreaterThanOrEqual(smaller);
-            expect(x).toBeLessThanOrEqual(larger);
-          };
-
-          test(`using [${lowerBound}, ${upperBound}] notation`, () => {
-            simulate([
-              (ga) => checkBetween(ga[name]),
-              (ga) => {
-                const snapshot1 = ga[name];
-                setTimeout(() => {
-                  const snapshot2 = ga[name];
-                  if (lowerBound < upperBound) {
-                    expect(snapshot2).toBeGreaterThanOrEqual(snapshot1);
-                  } else if (lowerBound > upperBound) {
-                    expect(snapshot2).toBeLessThanOrEqual(snapshot1);
+          for (const opts of [{ [name]: [lowerBound, upperBound] }, { [name]: { start: lowerBound, end: upperBound }}]) {
+            test(`using [${lowerBound}, ${upperBound}] notation`, () => {
+              const op = (ga) => {
+                const { rIdx } = ga;
+                const val = ga[name];
+                expect(val).toBeGreaterThanOrEqual(smaller - FLOAT_DELTA);
+                expect(val).toBeLessThanOrEqual(larger + FLOAT_DELTA);
+                const snapshot1 = val;
+                const afterDelay = () => {
+                  if (ga.rIdx - rIdx >= 50) {
+                    const snapshot2 = ga[name];
+                    if (lowerBound < upperBound) {
+                      expect(snapshot2).toBeGreaterThanOrEqual(snapshot1 - FLOAT_DELTA);
+                    } else if (lowerBound > upperBound) {
+                      expect(snapshot2).toBeLessThanOrEqual(snapshot1 + FLOAT_DELTA);
+                    }
                   }
-                }, DEFAULT_DELAY);
-              },
-            ], { [name]: [lowerBound, upperBound] }, 'op');
-          });
-
-          test(`using { start: ${lowerBound}, end: ${upperBound} } notation`, () => {
-            simulate([(ga) => checkBetween(ga[name])], { [name]: { start: lowerBound, end: upperBound } }, 'op');
-          });
-
-          test(`using { start: ${lowerBound}, end: ${upperBound}, whenFit: "constant" } notation`, () => {
-            simulate(
-              [(ga) => expect(ga[name]).toBeCloseTo(lowerBound)],
-              { [name]: { start: lowerBound, end: lowerBound, whenFit: 'constant' } },
-              'op',
-            );
-          });
-
-          for (const bound of [lowerBound, upperBound]) {
-            test(`using { start: ${lowerBound}, end: ${upperBound}, whenFit: "constant" } notation`, () => {
-              simulate(
-                [(ga) => expect(ga[name]).toBeCloseTo(bound)],
-                { [name]: { start: bound, end: bound, whenFit: 'constant' } },
-                'op',
-              );
-            });
-
-            test(`using ${bound} notation`, () => {
-              simulate(
-                [(ga) => expect(ga[name]).toBeCloseTo(bound)],
-                { [name]: bound },
-                'op',
-              );
+                };
+                setTimeout(afterDelay, DEFAULT_DELAY);
+              };
+              simulate({ op }, opts);
             });
           }
+
+          for (const bound of [lowerBound, upperBound]) {
+            const optsBrace = { [name]: { start: bound, end: bound, whenFit: 'constant' } };
+            const optsConst = { [name]: bound };
+            for (const opts of [optsBrace, optsConst]) {
+              test(`using ${JSON.stringify(opts)} notation`, () => {
+                const op = (ga) => expect(ga[name]).toBeCloseTo(bound);
+                simulate({ op }, opts);
+              });
+            }
+          }
         });
+
         // swap
         const tmp = upperBound;
         upperBound = lowerBound;
@@ -268,11 +220,10 @@ describe('internals are valid', () => {
       }
     }
   });
-
 });
 
 test('scores are improving with time', () => {
-  simulate([
+  simulate(
     (ga) => {
       const snapshot1 = ga.scores;
       const afterDelay = () => {
@@ -283,7 +234,7 @@ test('scores are improving with time', () => {
       };
       setTimeout(afterDelay, DEFAULT_DELAY);
     },
-  ]);
+  );
 });
 
 describe('ga does well on simple problems', () => {
@@ -291,25 +242,14 @@ describe('ga does well on simple problems', () => {
   const timeSec = 5;
   const timeOutMS = Duration.seconds(timeSec);
   const nRounds = NRounds.MEDIUM;
-  for (const dt of [
-    'u',
-    'i'
-  ]) {
-    for (const nBits of [
-      8,
-      16,
-      32
-    ]) {
+  for (const dt of ['u', 'i']) {
+    for (const nBits of [8, 16, 32]) {
       const bestPossible = 2 ** (dt === 'u' ? nBits : nBits - 1) * DEFAULT_NGENES;
       const dtype = `${dt}${nBits}`;
       test(`dtype = ${dtype}, best possible = ${bestPossible} (${timeSec} sec)`, () => {
-        simulate(
-          [(ga) => expect(f(ga.bestCand) / bestPossible).toBeGreaterThan(DEFAULT_MIN_PERF)],
-          { timeOutMS, nRounds },
-          'end',
-          [dtype],
-          [f],
-        );
+        const opts = { timeOutMS, nRounds };
+        const end = (ga) => expect(f(ga.bestCand) / bestPossible).toBeGreaterThan(DEFAULT_MIN_PERF);
+        simulate({ end }, opts, [dtype], [f]);
       });
     }
   }
