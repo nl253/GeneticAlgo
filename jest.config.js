@@ -17,6 +17,7 @@ module.exports = {
    * Stop running tests after `n` failures
    * bail: 0,
    */
+  bail: 100,
 
   /*
    * Respect "browser" field in package.json when resolving modules
