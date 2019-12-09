@@ -4,3 +4,4 @@ examples/*.js
 **/*~
 index.js
 .idea/workspace.xml
+/report.*.json

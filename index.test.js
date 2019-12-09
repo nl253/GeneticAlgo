@@ -199,7 +199,11 @@ describe('internals are valid', () => {
       const smaller = Math.min(upperBound, lowerBound);
       const larger = Math.max(upperBound, lowerBound);
 
-      const optsArray = [{ [name]: [lowerBound, upperBound] }, { [name]: { start: lowerBound, end: upperBound }}];
+      const optsArray = [
+        { [name]: [lowerBound, upperBound] },
+        { [name]: { start: lowerBound, end: upperBound } },
+        { [name]: { start: lowerBound, end: upperBound, whenFit: 'constant' } },
+      ];
 
       for (const opts of optsArray) {
         test(`${name} set using ${JSON.stringify(opts)} notation`, () => {
@@ -221,8 +225,9 @@ describe('internals are valid', () => {
 
       for (const bound of [lowerBound, upperBound]) {
         const optsBrace = { [name]: { start: bound, end: bound, whenFit: 'constant' } };
+        const optsBrack = { [name]: [bound, bound] };
         const optsConst = { [name]: bound };
-        for (const opts of [optsBrace, optsConst]) {
+        for (const opts of [optsBrace, optsBrack, optsConst]) {
           describe(`using ${JSON.stringify(opts)} notation`, () => {
             simulate((ga) => test(`value of ${name} should not change and be ${bound}`, () => expect(ga[name]).toBeCloseTo(bound)), opts);
           });
@@ -238,18 +243,17 @@ describe('internals are valid', () => {
 });
 
 test('scores are improving with time', () => {
-  simulate(
-    (ga) => {
-      const snapshot1 = ga.scores;
-      const afterDelay = () => {
-        const snapshot2 = ga.scores;
-        const sum1 = snapshot1.reduce((x, y) => x + y, 0);
-        const sum2 = snapshot2.reduce((x, y) => x + y, 0);
-        expect(sum2).toBeGreaterThan(sum1);
-      };
-      setTimeout(afterDelay, DEFAULT_DELAY);
-    },
-  );
+  const start = (ga) => {
+    const snapshot1 = ga.scores;
+    const afterDelay = () => {
+      const snapshot2 = ga.scores;
+      const sum1 = snapshot1.reduce((x, y) => x + y, 0);
+      const sum2 = snapshot2.reduce((x, y) => x + y, 0);
+      expect(sum2).toBeGreaterThan(sum1);
+    };
+    setTimeout(afterDelay, DEFAULT_DELAY);
+  };
+  simulate({ start });
 });
 
 describe('ga does well on simple problems', () => {
