@@ -36,9 +36,6 @@ jobs:
       - name: Lint Docs
         shell: bash
         run: npm run lint:doc
-      - name: Check JSDoc Types
-        shell: bash
-        run: npm run doc
       - name: Test Code
         shell: bash
         run: npm test
