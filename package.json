@@ -2,8 +2,8 @@
   "name": "genetic-algo",
   "version": "2.0.0",
   "description": "Genetic algorithm",
-  "readme": "https://nl253.github.io/GeneticAlgo-JS/index.html",
-  "homepage": "https://github.com/nl253/GeneticAlgo-JS",
+  "readme": "https://nl253.github.io/GeneticAlgo/index.html",
+  "homepage": "https://github.com/nl253/GeneticAlgo",
   "keywords": [
     "algorithm",
     "evolutionary-programming",
@@ -19,11 +19,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nl253/GeneticAlgo-JS"
+    "url": "https://github.com/nl253/GeneticAlgo"
   },
   "bugs": {
     "email": "norbertlogiewa96@gmail.com",
-    "url": "https://github.com/nl253/GeneticAlgo-JS/issues"
+    "url": "https://github.com/nl253/GeneticAlgo/issues"
   },
   "author": "Norbert Logiewa <norbertlogiewa96@gmail.com>",
   "maintainers": [

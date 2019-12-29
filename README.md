@@ -80,7 +80,7 @@ const fitness = xs => {
 Fittest candidates score 0 (distance from the root is 0 meaning root has
 been found), least fit candidates have a negative value.
 
-Output from [this example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/math.ts) which uses this fitness function:
+Output from [this example](https://github.com/nl253/GeneticAlgo/blob/master/examples/math.ts) which uses this fitness function:
 
 ```haskell
 log2( 98) *   0^ 61 / 209 +   0^log2( 76) = 0
@@ -148,7 +148,7 @@ function fitnessFunction(cand) {
 }
 ```
 
-More examples [here](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples).
+More examples [here](https://github.com/nl253/GeneticAlgo/tree/master/examples).
 
 ## NGenes
 
@@ -477,7 +477,7 @@ ga.on('timeout', () => console.log(`[END] timeout`))
 ga.on('end', () => console.log(`[END] after round #${ga.rIdx} (took ${ga.timeTakenMS / SEC}sec)`))
 ```
 
-More examples [here](https://github.com/nl253/GeneticAlgo-JS/tree/master/examples).
+More examples [here](https://github.com/nl253/GeneticAlgo/tree/master/examples).
 
 ## Performance
 
@@ -486,7 +486,7 @@ More examples [here](https://github.com/nl253/GeneticAlgo-JS/tree/master/example
 
 ## Downsides
 
-- single-threaded (but see [parallel example](https://github.com/nl253/GeneticAlgo-JS/blob/master/examples/parallel.ts) that uses the cluster module from node stdlib).
+- single-threaded (but see [parallel example](https://github.com/nl253/GeneticAlgo/blob/master/examples/parallel.ts) that uses the cluster module from node stdlib).
 
 ## License
 
