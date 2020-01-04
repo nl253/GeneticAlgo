@@ -112,7 +112,7 @@
     "doc:open": "bash -c \"npm run doc && $BROWSER ./docs/index.html\"",
     "doc:publish": "bash -c \"echo -e 'PUBLISHING DOCS\\n' && npm run doc && git add ./docs && git commit -am 'Update docs' -n && git push\"",
     "lint": "bash -c \"npm run lint:code && npm run lint:doc && npm run lint:deps\"",
-    "lint:code": "bash -c \"npx eslint *.ts\"",
+    "lint:code": "npx eslint ./**/*.ts",
     "lint:doc": "bash -c \"npm run lint:doc:markdown-lint && npm run lint:doc:write-good && npm run lint:doc:remark\"",
     "lint:doc:write-good": "bash -c \"npx write-good --so --weasel --tooWordy --cliches --thereIs *.md || echo ''\"",
     "lint:doc:markdown-lint": "bash -c \"npx markdownlint *.md\"",
